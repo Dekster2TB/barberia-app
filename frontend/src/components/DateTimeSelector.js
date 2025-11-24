@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../config/api';
 
 const DateTimeSelector = ({ onSelectDateTime }) => {
     const [date, setDate] = useState('');
@@ -11,7 +11,7 @@ const DateTimeSelector = ({ onSelectDateTime }) => {
         if (date) {
             setLoading(true);
             // Petición al endpoint inteligente que creamos antes
-            axios.get(`/api/bookings/available?date=${date}`)
+            api.get(`/api/bookings/available?date=${date}`)
                 .then(res => {
                     setSlots(res.data); // Guardamos las horas ["10:00", "10:30"...]
                     setLoading(false);

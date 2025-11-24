@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../config/api';
 
 const ServiceSelector = ({ onSelectService }) => {
     const [services, setServices] = useState([]);
@@ -8,7 +8,7 @@ const ServiceSelector = ({ onSelectService }) => {
 
     useEffect(() => {
         // Pedir los servicios al Backend
-        axios.get('/api/services')
+        api.get('/api/services')
             .then(response => {
                 setServices(response.data);
                 setLoading(false);

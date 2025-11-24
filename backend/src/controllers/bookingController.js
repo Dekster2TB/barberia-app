@@ -101,6 +101,23 @@ exports.createReservation = async (req, res) => {
     }
 };
 
+// 3. Obtener TODAS las reservas (Para el Admin)
+exports.getBookings = async (req, res) => {
+    try {
+        // Truco Senior: Usamos "include" para que traiga el nombre del servicio
+        // en vez de solo el número ID.
+        const bookings = await Reservation.findAll({
+            include: Service, 
+            order: [['date', 'ASC'], ['start_time', 'ASC']] // Ordenar por fecha
+        });
+        res.json(bookings);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al obtener reservas' });
+    }
+};
+
+
 function calculateEndTime(startTime) {
     const [hour, minute] = startTime.split(':').map(Number);
     let newMinute = minute + 30;

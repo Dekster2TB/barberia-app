@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../config/api';
 
 const ReservationForm = ({ service, date, time, onSuccess, onBack }) => {
     const [name, setName] = useState('');
@@ -23,7 +23,7 @@ const ReservationForm = ({ service, date, time, onSuccess, onBack }) => {
             };
 
             // ¡PUM! Enviamos la reserva
-            await axios.post('/api/bookings', payload);
+            await api.post('/api/bookings', payload);
             
             // Si todo sale bien, avisamos al padre (App.js)
             onSuccess();

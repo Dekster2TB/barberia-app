@@ -13,7 +13,7 @@ const Reservation = require('./src/models/Reservation');
 // Importar Rutas (Endpoints)
 const serviceRoutes = require('./src/routes/serviceRoutes');
 const bookingRoutes = require('./src/routes/bookingRoutes');
-const authRoutes = require('./src/routes/authRoutes'); // Nueva ruta de seguridad
+const authRoutes = require('./src/routes/authRoutes'); 
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -25,7 +25,27 @@ Service.hasMany(Reservation, { foreignKey: 'service_id' });
 Reservation.belongsTo(Service, { foreignKey: 'service_id' });
 
 // --- 3. MIDDLEWARE ---
-app.use(cors()); // Manejo de CORS
+
+// URL REAL del Frontend en Render (¡Tu dominio!)
+const FRONTEND_URL = 'https://barberia-frontend-4e1s.onrender.com';
+
+// Configuración de CORS para aceptar solo peticiones de tu frontend
+app.use(cors({
+    origin: function (origin, callback) {
+        // Permitir peticiones sin 'origin' (como Insomnia o Curl)
+        if (!origin) return callback(null, true);
+        
+        // Verificar si el origen es localhost (para desarrollo) o la URL de producción
+        if (origin === 'http://localhost:3000' || origin === FRONTEND_URL) {
+            return callback(null, true);
+        }
+        
+        // Rechazar cualquier otro origen
+        const msg = `El origen CORS ${origin} no está permitido.`;
+        callback(new Error(msg), false);
+    }
+}));
+
 app.use(express.json()); // Permite recibir cuerpos JSON en las peticiones
 
 // --- 4. USAR RUTAS (Endpoints) ---
@@ -48,8 +68,9 @@ async function startServer() {
         await sequelize.authenticate();
         console.log('✅ Conexión a la base de datos PostgreSQL exitosa.');
         
-        // Sincroniza modelos. 'alter: true' se quita si se usó reset.js, pero se mantiene 
-        // para asegurar que el modelo User (con el hook de hashing) se actualice.
+        // Sincroniza modelos. Se mantiene {alter: true} para que recoja cualquier 
+        // cambio en el modelo User (hashing) si es necesario, pero se debe quitar 
+        // si se pasa a migraciones.
         await sequelize.sync({ alter: true }); 
         console.log('✅ Modelos sincronizados.');
         

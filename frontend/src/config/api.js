@@ -1,11 +1,11 @@
 import axios from 'axios';
 
 const api = axios.create({
-    // LÓGICA: Si estamos en localhost, usa el proxy. 
-    // Si estamos en la nube, usa la URL real de Render.
+    // En desarrollo local, forzamos la URL local del backend
+    // En producción, usará la URL de Render
     baseURL: process.env.NODE_ENV === 'production' 
-        ? 'https://barberia-backend-api.onrender.com' // <--- ¡PON TU URL DE RENDER AQUÍ!
-        : '/' 
+        ? 'https://barberia-backend-api.onrender.com' 
+        : 'http://localhost:5000' 
 });
 
 export default api;

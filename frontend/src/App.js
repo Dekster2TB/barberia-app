@@ -2,15 +2,22 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import BookingInterface from './components/BookingInterface';
 import AdminPanel from './components/AdminPanel';
+import Login from './components/Login'; // <-- IMPORTAR
+import ProtectedRoute from './components/ProtectedRoute'; // <-- IMPORTAR
 
 function App() {
   return (
     <Routes>
-      {/* Si entran a la raíz, ven la Barbería para Clientes */}
+      {/* Ruta Principal: Clientes */}
       <Route path="/" element={<BookingInterface />} />
       
-      {/* Si entran a /admin, ven la Tabla de Reservas */}
-      <Route path="/admin" element={<AdminPanel />} />
+      {/* Ruta de Login */}
+      <Route path="/login" element={<Login />} />
+
+      {/* RUTA PROTEGIDA: Solo accesible si el token es válido */}
+      <Route element={<ProtectedRoute />}>
+          <Route path="/admin" element={<AdminPanel />} />
+      </Route>
     </Routes>
   );
 }

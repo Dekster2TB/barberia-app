@@ -9,11 +9,13 @@ const sequelize = require('./src/config/db');
 const Service = require('./src/models/Service');
 const User = require('./src/models/User'); 
 const Reservation = require('./src/models/Reservation');
+const Barber = require('./src/models/Barber');
 
 // Importar Rutas (Endpoints)
 const serviceRoutes = require('./src/routes/serviceRoutes');
 const bookingRoutes = require('./src/routes/bookingRoutes');
 const authRoutes = require('./src/routes/authRoutes'); 
+const barberRoutes = require('./src/routes/barberRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -21,8 +23,11 @@ const PORT = process.env.PORT || 5000;
 // --- 2. DEFINIR RELACIONES ---
 // Un Servicio tiene muchas Reservas
 Service.hasMany(Reservation, { foreignKey: 'service_id' });
-// Una Reserva pertenece a un Servicio
 Reservation.belongsTo(Service, { foreignKey: 'service_id' });
+
+// Barbero <-> Reserva (NUEVO)
+Barber.hasMany(Reservation, { foreignKey: 'barber_id' });
+Reservation.belongsTo(Barber, { foreignKey: 'barber_id' });
 
 // --- 3. MIDDLEWARE ---
 
@@ -50,9 +55,10 @@ app.use(express.json()); // Permite recibir cuerpos JSON en las peticiones
 
 // --- 4. USAR RUTAS (Endpoints) ---
 
-// Rutas Públicas (Servicios, Reservas)
+// Rutas Públicas (Servicios, Reservas, Barberos)
 app.use('/api/services', serviceRoutes);
 app.use('/api/bookings', bookingRoutes); 
+app.use('/api/barbers', barberRoutes);
 
 // Ruta de Autenticación (Login)
 app.use('/api/auth', authRoutes);

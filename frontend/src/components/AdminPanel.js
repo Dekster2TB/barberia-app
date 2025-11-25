@@ -125,6 +125,7 @@ const AdminPanel = () => {
                                     <th>Cliente</th>
                                     <th>Teléfono</th>
                                     <th>Servicio</th>
+                                    <th>Barbero</th> {/* <--- NUEVA COLUMNA */}
                                     <th className="text-center">Estado</th>
                                     <th className="text-center">Acciones</th> 
                                 </tr>
@@ -145,6 +146,15 @@ const AdminPanel = () => {
                                             {b.Service ? b.Service.name : <span className="text-muted fst-italic">Eliminado</span>}
                                         </td>
                                         
+                                        {/* Columna de Barbero */}
+                                        <td>
+                                            {b.Barber ? (
+                                                <span className="badge bg-info text-dark">{b.Barber.name}</span>
+                                            ) : (
+                                                <span className="text-muted small">Cualquiera</span>
+                                            )}
+                                        </td>
+
                                         {/* Columna de Estado */}
                                         <td className="text-center">
                                             <span className={`badge ${getStatusBadge(b.status)} px-3 py-2`}>

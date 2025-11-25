@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import api from '../config/api';
 import toast from 'react-hot-toast';
 
-const ReservationForm = ({ service, date, time, onSuccess, onBack }) => {
+const ReservationForm = ({ service, barber, date, time, onSuccess, onBack }) => {
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [loading, setLoading] = useState(false);
@@ -29,6 +29,7 @@ const ReservationForm = ({ service, date, time, onSuccess, onBack }) => {
         try {
             await api.post('/api/bookings', {
                 service_id: service.id,
+                barber_id: barber.id, // <--- ¡AQUÍ ESTÁ LA CORRECCIÓN!
                 date,
                 start_time: time,
                 user_name: name,
@@ -60,6 +61,7 @@ const ReservationForm = ({ service, date, time, onSuccess, onBack }) => {
                     <h5 className="text-success">{service.name}</h5>
                     <p className="mb-0">📅 {date} a las ⏰ <strong>{time}</strong></p>
                     <p className="text-muted small mt-1">Valor: ${service.price}</p>
+                    <p className="text-muted small mt-1">Atendido por: {barber.name}</p> {/* Mostrar barbero */}
                 </div>
 
                 <form onSubmit={handleSubmit}>

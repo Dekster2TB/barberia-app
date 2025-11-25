@@ -17,6 +17,12 @@ const Reservation = sequelize.define('Reservation', {
         type: DataTypes.STRING,
         allowNull: false
     },
+
+    user_email: {
+        type: DataTypes.STRING,
+        allowNull: true // Opcional como pediste
+    },
+
     user_phone: {
         type: DataTypes.STRING,
         allowNull: false

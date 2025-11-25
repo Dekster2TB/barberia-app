@@ -5,13 +5,14 @@ import { AuthContext } from '../context/AuthContext';
 const ProtectedRoute = () => {
     const { user } = useContext(AuthContext);
 
-    // Revisar: ¿Hay un usuario logueado Y tiene el rol 'admin'?
-    if (!user || user.role !== 'admin') {
+    // Validar que exista usuario Y que tenga un rol permitido
+    // Ahora permitimos 'admin' Y 'developer'
+    if (!user || (user.role !== 'admin' && user.role !== 'developer')) {
         // Si no cumple, lo enviamos al login
         return <Navigate to="/login" replace />;
     }
 
-    // Si cumple, renderizamos la ruta hija (el AdminPanel)
+    // Si cumple, renderizamos la ruta hija (AdminPanel o DevDashboard)
     return <Outlet />;
 };
 

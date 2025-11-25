@@ -2,39 +2,44 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
-// Importación de Componentes
+// Importar Componentes
 import BookingInterface from './components/BookingInterface';
 import AdminPanel from './components/AdminPanel';
 import Login from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import ChangePassword from './components/ChangePassword';
-import MyBookings from './components/MyBookings'; // <--- Importamos el componente de Mis Reservas
+import MyBookings from './components/MyBookings';
+import DevDashboard from './components/DevDashboard'; // Si implementaste el panel de finanzas
 
 function App() {
   return (
     <>
-      {/* Configuración de las notificaciones toast */}
+      {/* Sistema de Notificaciones Globales */}
       <Toaster position="top-center" reverseOrder={false} />
       
       <Routes>
-        {/* --- RUTAS PÚBLICAS --- */}
+        {/* --- RUTAS PÚBLICAS (Clientes) --- */}
         
-        {/* Página principal de reservas */}
+        {/* Página Principal: Flujo de Reserva */}
         <Route path="/" element={<BookingInterface />} />
         
-        {/* Página para que el cliente vea y cancele sus citas */}
+        {/* Página de Gestión de Cliente: Ver y Cancelar Citas */}
         <Route path="/my-bookings" element={<MyBookings />} />
         
-        {/* Página de inicio de sesión para el administrador */}
+        {/* Página de Login (Admin/Dev) */}
         <Route path="/login" element={<Login />} />
 
-        {/* --- RUTAS PROTEGIDAS (ADMINISTRADOR) --- */}
+        {/* --- RUTAS PROTEGIDAS (Admin y Dev) --- */}
         <Route element={<ProtectedRoute />}>
-            {/* Panel de control principal */}
+            {/* Panel de Administración (Gestión de Citas) */}
             <Route path="/admin" element={<AdminPanel />} />
             
-            {/* Formulario para cambiar contraseña */}
+            {/* Cambio de Contraseña */}
             <Route path="/admin/password" element={<ChangePassword />} />
+            
+            {/* Panel de Desarrollador (Finanzas) */}
+            {/* Solo accesible si el usuario tiene rol 'developer', el backend lo valida */}
+            <Route path="/dev-dashboard" element={<DevDashboard />} />
         </Route>
       </Routes>
     </>

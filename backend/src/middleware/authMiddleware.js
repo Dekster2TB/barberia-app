@@ -39,3 +39,24 @@ exports.admin = (req, res, next) => {
         return res.status(403).json({ error: 'Acceso prohibido. Se requiere rol de administrador.' });
     }
 };
+// ... (código anterior de protect)
+
+// ... 
+
+exports.admin = (req, res, next) => {
+    // Permitir si es admin O developer (el dev es super-admin)
+    if (req.user && (req.user.role === 'admin' || req.user.role === 'developer')) {
+        next();
+    } else {
+        return res.status(403).json({ error: 'Requiere rol Admin' });
+    }
+};
+
+// NUEVO: Solo para Desarrollador
+exports.developer = (req, res, next) => {
+    if (req.user && req.user.role === 'developer') {
+        next();
+    } else {
+        return res.status(403).json({ error: 'Acceso restringido al Desarrollador' });
+    }
+};

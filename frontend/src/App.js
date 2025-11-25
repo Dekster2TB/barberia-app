@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast'; // <--- IMPORTAR LIBRERÍA
 import BookingInterface from './components/BookingInterface';
 import AdminPanel from './components/AdminPanel';
 import Login from './components/Login';
@@ -8,19 +9,22 @@ import ChangePassword from './components/ChangePassword';
 
 function App() {
   return (
-    <Routes>
-      {/* Ruta Pública: Clientes */}
-      <Route path="/" element={<BookingInterface />} />
+    <>
+      {/* Componente invisible que gestiona las notificaciones */}
+      <Toaster position="top-center" reverseOrder={false} />
       
-      {/* Ruta Login */}
-      <Route path="/login" element={<Login />} />
+      <Routes>
+        {/* Rutas Públicas */}
+        <Route path="/" element={<BookingInterface />} />
+        <Route path="/login" element={<Login />} />
 
-      {/* Rutas Protegidas: Admin */}
-      <Route element={<ProtectedRoute />}>
-          <Route path="/admin" element={<AdminPanel />} />
-          <Route path="/admin/password" element={<ChangePassword />} />
-      </Route>
-    </Routes>
+        {/* Rutas Protegidas (Requieren Login) */}
+        <Route element={<ProtectedRoute />}>
+            <Route path="/admin" element={<AdminPanel />} />
+            <Route path="/admin/password" element={<ChangePassword />} />
+        </Route>
+      </Routes>
+    </>
   );
 }
 

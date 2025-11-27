@@ -25,52 +25,75 @@ const BarberSelector = ({ onSelectBarber, onBack }) => {
         <div className="animate__animated animate__fadeIn">
             <h3 className="text-center mb-4">¿Quién te atenderá hoy?</h3>
             
-            <div className="row justify-content-center">
-                {barbers.map(barber => (
-                    <div key={barber.id} className="col-md-4 col-sm-6 mb-4">
-                        <div 
-                            className="card h-100 shadow-sm border-0 barber-card" 
-                            onClick={() => onSelectBarber(barber)}
-                            style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
-                            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
-                            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                        >
-                            <div className="card-body text-center d-flex flex-column align-items-center">
-                                
-                                {/* FOTO DE PERFIL (O INICIAL) */}
-                                <div className="mb-3">
-                                    {barber.image_url ? (
-                                        <img 
-                                            src={barber.image_url} 
-                                            alt={barber.name} 
-                                            className="rounded-circle shadow-sm object-fit-cover" 
-                                            style={{width: '120px', height: '120px', objectFit: 'cover', border: '3px solid #fff'}} 
-                                        />
-                                    ) : (
-                                        <div className="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center shadow-sm" style={{width: '120px', height: '120px', fontSize: '40px'}}>
-                                            {barber.name.charAt(0)}
+            {barbers.length === 0 ? (
+                <p className="text-center text-muted">No hay barberos disponibles.</p>
+            ) : (
+                <div className="row justify-content-center">
+                    {barbers.map(barber => (
+                        <div key={barber.id} className="col-md-4 col-sm-6 mb-4">
+                            <div 
+                                className="card h-100 shadow-sm border-0 barber-card" 
+                                onClick={() => onSelectBarber(barber)}
+                                style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+                                onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
+                                onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            >
+                                <div className="card-body text-center d-flex flex-column align-items-center">
+                                    
+                                    {/* FOTO DE PERFIL */}
+                                    <div className="mb-3 position-relative">
+                                        {barber.image_url ? (
+                                            <img 
+                                                src={barber.image_url} 
+                                                alt={barber.name} 
+                                                className="rounded-circle shadow-sm object-fit-cover" 
+                                                style={{width: '120px', height: '120px', objectFit: 'cover', border: '3px solid #fff'}} 
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none'; // Ocultar imagen rota
+                                                    e.target.nextSibling.style.display = 'flex'; // Mostrar inicial
+                                                }}
+                                            />
+                                        ) : null}
+                                        
+                                        {/* INICIAL (Fallback) */}
+                                        {/* Quitamos 'd-flex' de las clases para controlar el display manualmente */}
+                                        <div 
+                                            className="rounded-circle bg-secondary text-white align-items-center justify-content-center shadow-sm" 
+                                            style={{
+                                                width: '120px', 
+                                                height: '120px', 
+                                                fontSize: '40px',
+                                                // Si hay imagen, display: 'none'. Si no, display: 'flex'
+                                                display: barber.image_url ? 'none' : 'flex' 
+                                            }}
+                                        >
+                                            {barber.name.charAt(0).toUpperCase()}
                                         </div>
+                                    </div>
+
+                                    <h5 className="card-title fw-bold mb-1">{barber.name}</h5>
+                                    
+                                    {/* ESPECIALIDAD */}
+                                    {barber.specialty && (
+                                        <p className="text-primary small mb-2 fw-bold text-uppercase ls-1">
+                                            {barber.specialty}
+                                        </p>
                                     )}
+                                    
+                                    {/* BIO */}
+                                    <p className="card-text text-muted small mb-4 px-2">
+                                        {barber.bio || 'Disponible para reservar.'}
+                                    </p>
+
+                                    <button className="btn btn-outline-dark btn-sm mt-auto px-4 rounded-pill">
+                                        Elegir
+                                    </button>
                                 </div>
-
-                                <h5 className="card-title fw-bold mb-1">{barber.name}</h5>
-                                <p className="text-primary small mb-2 fw-bold text-uppercase ls-1">
-                                    {barber.specialty || 'Estilista'}
-                                </p>
-                                
-                                {/* DESCRIPCIÓN / BIO */}
-                                <p className="card-text text-muted small mb-4 px-2">
-                                    {barber.bio || 'Listo para darte el mejor estilo.'}
-                                </p>
-
-                                <button className="btn btn-outline-dark btn-sm mt-auto px-4 rounded-pill">
-                                    Elegir a {barber.name.split(' ')[0]}
-                                </button>
                             </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
             
             <div className="text-center mt-4">
                 <button className="btn btn-link text-muted text-decoration-none" onClick={onBack}>

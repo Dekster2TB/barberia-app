@@ -11,11 +11,21 @@ const Barber = sequelize.define('Barber', {
         type: DataTypes.STRING,
         allowNull: false
     },
-    bio: {
+    // 👇 ESTE CAMPO ES LA ESPECIALIDAD
+    specialty: {
         type: DataTypes.STRING,
+        defaultValue: 'Estilista' // Valor por defecto si no pones nada
+    },
+    // 👇 ESTE CAMPO ES LA BIOGRAFÍA
+    bio: {
+        type: DataTypes.TEXT,
         allowNull: true
     },
-    // Podrías agregar 'avatar' aquí si quieres fotos
+    // 👇 ESTE CAMPO ES LA FOTO
+    image_url: {
+        type: DataTypes.STRING,
+        allowNull: true
+    }
 }, {
     tableName: 'barbers',
     timestamps: true

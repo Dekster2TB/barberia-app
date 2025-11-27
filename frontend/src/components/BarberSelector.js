@@ -27,7 +27,7 @@ const BarberSelector = ({ onSelectBarber, onBack }) => {
             
             <div className="row justify-content-center">
                 {barbers.map(barber => (
-                    <div key={barber.id} className="col-md-4 col-sm-6 mb-3">
+                    <div key={barber.id} className="col-md-4 col-sm-6 mb-4">
                         <div 
                             className="card h-100 shadow-sm border-0 barber-card" 
                             onClick={() => onSelectBarber(barber)}
@@ -35,13 +35,37 @@ const BarberSelector = ({ onSelectBarber, onBack }) => {
                             onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
                             onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
                         >
-                            <div className="card-body text-center">
-                                <div className="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style={{width: '80px', height: '80px', fontSize: '24px'}}>
-                                    {barber.name.charAt(0)}
+                            <div className="card-body text-center d-flex flex-column align-items-center">
+                                
+                                {/* FOTO DE PERFIL (O INICIAL) */}
+                                <div className="mb-3">
+                                    {barber.image_url ? (
+                                        <img 
+                                            src={barber.image_url} 
+                                            alt={barber.name} 
+                                            className="rounded-circle shadow-sm object-fit-cover" 
+                                            style={{width: '120px', height: '120px', objectFit: 'cover', border: '3px solid #fff'}} 
+                                        />
+                                    ) : (
+                                        <div className="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center shadow-sm" style={{width: '120px', height: '120px', fontSize: '40px'}}>
+                                            {barber.name.charAt(0)}
+                                        </div>
+                                    )}
                                 </div>
-                                <h5 className="card-title fw-bold">{barber.name}</h5>
-                                <p className="card-text text-muted small">{barber.specialty}</p>
-                                <button className="btn btn-outline-dark btn-sm mt-2">Elegir</button>
+
+                                <h5 className="card-title fw-bold mb-1">{barber.name}</h5>
+                                <p className="text-primary small mb-2 fw-bold text-uppercase ls-1">
+                                    {barber.specialty || 'Estilista'}
+                                </p>
+                                
+                                {/* DESCRIPCIÓN / BIO */}
+                                <p className="card-text text-muted small mb-4 px-2">
+                                    {barber.bio || 'Listo para darte el mejor estilo.'}
+                                </p>
+
+                                <button className="btn btn-outline-dark btn-sm mt-auto px-4 rounded-pill">
+                                    Elegir a {barber.name.split(' ')[0]}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -49,7 +73,7 @@ const BarberSelector = ({ onSelectBarber, onBack }) => {
             </div>
             
             <div className="text-center mt-4">
-                <button className="btn btn-link text-muted" onClick={onBack}>
+                <button className="btn btn-link text-muted text-decoration-none" onClick={onBack}>
                     ← Volver a Servicios
                 </button>
             </div>

@@ -1,13 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  font-family: 'Poppins', sans-serif;
+  background-color: #f8f9fa; /* Fondo suave */
+  color: #333;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* Animaciones suaves */
+.animate__animated {
+  animation-duration: 0.5s;
+}
+
+/* Tarjetas con efecto moderno */
+.card {
+  border: none;
+  border-radius: 12px; /* Bordes más redondeados */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px); /* Efecto de elevación sutil */
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+}
+
+/* Botones personalizados */
+.btn {
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 10px 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.85rem;
+}
+
+/* Estilos específicos para el calendario */
+.react-datepicker {
+  border: none !important;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  font-family: 'Poppins', sans-serif !important;
+}
+.react-datepicker__header {
+  background-color: #fff !important;
+  border-bottom: 1px solid #eee !important;
+}
+.react-datepicker__day--selected {
+  background-color: #1a1a1a !important; /* Color negro elegante */
+  border-radius: 50% !important;
+}
+.react-datepicker__day:hover {
+  border-radius: 50% !important;
 }

@@ -9,7 +9,6 @@ const AdminPanel = () => {
     const { user, logout } = useContext(AuthContext); 
     const navigate = useNavigate();
 
-    // --- 1. CARGAR DATOS ---
     const fetchBookings = () => {
         setLoading(true);
         api.get('/api/bookings') 
@@ -29,32 +28,42 @@ const AdminPanel = () => {
 
     useEffect(() => {
         fetchBookings();
+        // Refrescar cada 30 segundos para ver cambios de estado en vivo
+        const interval = setInterval(fetchBookings, 30000);
+        return () => clearInterval(interval);
     }, []);
 
-    // --- 2. CAMBIAR ESTADO (Finalizar/Cancelar) ---
     const handleStatusUpdate = async (id, newStatus) => {
-        if (!window.confirm(`¿Estás seguro de cambiar el estado de la reserva #${id} a ${newStatus.toUpperCase()}?`)) {
-            return;
-        }
-
+        if (!window.confirm(`¿Estás seguro de cambiar el estado?`)) return;
         try {
             await api.patch(`/api/bookings/${id}`, { status: newStatus });
             fetchBookings(); 
         } catch (err) {
-            console.error(`Error al cambiar estado a ${newStatus}:`, err);
-            const status = err.response ? err.response.status : 'Desconocido';
-            alert(`Fallo al actualizar. Código de error: ${status}`);
+            alert(`Error: ${err.response?.status}`);
         }
     };
 
-    // --- 3. ESTILOS DE BADGES (Aquí estaba el error de nombre) ---
-    const getStatusBadge = (status) => {
-        switch (status) {
-            case 'confirmed': return 'bg-success'; // Verde
-            case 'cancelled': return 'bg-danger';  // Rojo
-            case 'completed': return 'bg-primary'; // Azul
-            default: return 'bg-secondary';        // Gris
+    // --- LÓGICA VISUAL ---
+    const getDisplayStatus = (booking) => {
+        // Si la DB dice que está terminada o cancelada, mandan ellos.
+        if (booking.status === 'cancelled') return { label: 'CANCELADO', class: 'bg-danger' };
+        if (booking.status === 'completed') return { label: 'COMPLETADO', class: 'bg-primary' };
+
+        // Si dice 'confirmed', verificamos si está ocurriendo AHORA
+        const now = new Date();
+        const start = new Date(`${booking.date}T${booking.start_time}`);
+        const end = new Date(`${booking.date}T${booking.end_time}`);
+
+        if (now >= start && now < end) {
+            return { label: 'EN PROGRESO ✂️', class: 'bg-warning text-dark fw-bold border border-dark' }; 
         }
+
+        if (now > end) {
+            // Este estado aparece si la hora ya pasó pero el backend aún no ha procesado el cierre
+            return { label: 'FINALIZANDO...', class: 'bg-secondary' };
+        }
+
+        return { label: 'CONFIRMADO', class: 'bg-success' };
     };
 
     if (loading) return <div className="text-center mt-5"><div className="spinner-border text-primary"></div> Cargando...</div>;
@@ -66,15 +75,9 @@ const AdminPanel = () => {
                     🛡️ Panel de Administración <small className="text-muted">({user?.username})</small>
                 </h2>
                 <div>
-                    <button className="btn btn-warning me-2" onClick={() => navigate('/admin/password')}>
-                        🔑 Clave
-                    </button>
-                    <button className="btn btn-outline-primary me-2" onClick={fetchBookings}>
-                        🔄 Actualizar
-                    </button>
-                    <button className="btn btn-danger" onClick={logout}>
-                        🚪 Salir
-                    </button>
+                    <button className="btn btn-warning me-2" onClick={() => navigate('/admin/password')}>🔑 Clave</button>
+                    <button className="btn btn-outline-primary me-2" onClick={fetchBookings}>🔄 Actualizar</button>
+                    <button className="btn btn-danger" onClick={logout}>🚪 Salir</button>
                 </div>
             </div>
             
@@ -96,56 +99,38 @@ const AdminPanel = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {bookings.map((b) => (
-                                    <tr key={b.id}>
-                                        <td>{b.id}</td>
-                                        <td>{b.date}</td>
-                                        <td>{b.start_time.slice(0, 5)}</td>
-                                        <td className="fw-bold">{b.user_name}</td>
-                                        <td>
-                                            <a href={`tel:${b.user_phone}`} className="text-decoration-none text-dark">
-                                                {b.user_phone}
-                                            </a>
-                                        </td>
-                                        <td>{b.Service ? b.Service.name : <span className="text-muted">Borrado</span>}</td>
-                                        <td>
-                                            {b.Barber ? <span className="badge bg-info text-dark">{b.Barber.name}</span> : <span className="text-muted small">--</span>}
-                                        </td>
-                                        
-                                        {/* Aquí se usa la función corregida */}
-                                        <td className="text-center">
-                                            <span className={`badge ${getStatusBadge(b.status)} px-3 py-2`}>
-                                                {b.status.toUpperCase()}
-                                            </span>
-                                        </td>
+                                {bookings.map((b) => {
+                                    const statusInfo = getDisplayStatus(b);
+                                    return (
+                                        <tr key={b.id}>
+                                            <td>{b.id}</td>
+                                            <td>{b.date}</td>
+                                            <td className="fw-bold">{b.start_time.slice(0, 5)}</td>
+                                            <td className="fw-bold">{b.user_name}</td>
+                                            <td><a href={`tel:${b.user_phone}`} className="text-decoration-none text-dark">{b.user_phone}</a></td>
+                                            <td>{b.Service ? b.Service.name : <span className="text-muted">--</span>}</td>
+                                            <td>{b.Barber ? <span className="badge bg-info text-dark">{b.Barber.name}</span> : <span className="text-muted">--</span>}</td>
+                                            
+                                            <td className="text-center">
+                                                <span className={`badge ${statusInfo.class} px-3 py-2`}>
+                                                    {statusInfo.label}
+                                                </span>
+                                            </td>
 
-                                        <td className="text-center">
-                                            {b.status === 'confirmed' ? (
-                                                <div className="btn-group" role="group">
-                                                    <button 
-                                                        className="btn btn-sm btn-success"
-                                                        onClick={() => handleStatusUpdate(b.id, 'completed')}
-                                                    >
-                                                        ✔ Finalizar
-                                                    </button>
-                                                    <button 
-                                                        className="btn btn-sm btn-outline-danger"
-                                                        onClick={() => handleStatusUpdate(b.id, 'cancelled')}
-                                                    >
-                                                        ✖ Cancelar
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <small className="text-muted">--</small>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
+                                            <td className="text-center">
+                                                {b.status === 'confirmed' ? (
+                                                    <div className="btn-group" role="group">
+                                                        <button className="btn btn-sm btn-success" onClick={() => handleStatusUpdate(b.id, 'completed')}>✔</button>
+                                                        <button className="btn btn-sm btn-outline-danger" onClick={() => handleStatusUpdate(b.id, 'cancelled')}>✖</button>
+                                                    </div>
+                                                ) : <small className="text-muted">--</small>}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
-                        {bookings.length === 0 && (
-                            <div className="text-center p-5 text-muted">No hay reservas aún 🦗</div>
-                        )}
+                        {bookings.length === 0 && <div className="text-center p-5 text-muted">No hay reservas.</div>}
                     </div>
                 </div>
             </div>

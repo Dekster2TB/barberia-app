@@ -6,7 +6,7 @@ const { sendConfirmationEmail } = require('../config/mailer');
 
 // --- CONFIGURACIÓN DE HORARIO ---
 const WORK_START_HOUR = 10; 
-const WORK_END_HOUR = 19;   
+const WORK_END_HOUR = 23;   
 
 // --- HELPERS DE TIEMPO ---
 const timeToMinutes = (timeStr) => {
@@ -20,13 +20,38 @@ const minutesToTime = (minutes) => {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 };
 
-// --- 1. DISPONIBILIDAD INTELIGENTE ---
+const calculateEndTime = (startTime, durationMinutes = 30) => {
+    const startMin = timeToMinutes(startTime);
+    const endMin = startMin + durationMinutes;
+    return minutesToTime(endMin);
+};
+
+// --- FUNCIÓN INFALIBLE: Obtener Hora Chile en Formato YYYY-MM-DD HH:mm:ss ---
+const getChileCurrentTime = () => {
+    const now = new Date();
+    
+    // Pedimos las partes por separado para armar el rompecabezas nosotros mismos
+    // Esto evita que Windows nos de "27/11" y Linux "11/27"
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Santiago',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false // Formato 24 horas
+    });
+    
+    const parts = formatter.formatToParts(now);
+    const p = {};
+    parts.forEach(({ type, value }) => p[type] = value);
+    
+    // Retornamos SIEMPRE: Año-Mes-Día Hora:Minuto:Segundo
+    return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
+};
+
+// --- 1. OBTENER DISPONIBILIDAD ---
 exports.getAvailability = async (req, res) => {
     try {
         const { date, barber_id, service_id } = req.query;
-        if (!date || !barber_id || !service_id) {
-            return res.status(400).json({ error: 'Faltan parámetros' });
-        }
+        if (!date || !barber_id || !service_id) return res.status(400).json({ error: 'Faltan parámetros' });
 
         const service = await Service.findByPk(service_id);
         if (!service) return res.status(404).json({ error: 'Servicio no encontrado' });
@@ -56,10 +81,9 @@ exports.getAvailability = async (req, res) => {
             return !hasCollision;
         });
 
-        const formattedSlots = availableSlots.map(minutes => minutesToTime(minutes));
-        res.json(formattedSlots);
+        res.json(availableSlots.map(m => minutesToTime(m)));
     } catch (error) {
-        res.status(500).json({ error: 'Error al calcular disponibilidad' });
+        res.status(500).json({ error: 'Error al calcular' });
     }
 };
 
@@ -67,9 +91,7 @@ exports.getAvailability = async (req, res) => {
 exports.createReservation = async (req, res) => {
     try {
         const { service_id, barber_id, date, start_time, user_name, user_phone, user_email } = req.body;
-        if (!service_id || !barber_id || !date || !start_time || !user_name || !user_phone) {
-            return res.status(400).json({ error: 'Faltan campos' });
-        }
+        if (!service_id || !barber_id || !date || !start_time || !user_name || !user_phone) return res.status(400).json({ error: 'Faltan campos' });
 
         const service = await Service.findByPk(service_id);
         if (!service) return res.status(404).json({ error: 'Servicio inválido' });
@@ -85,13 +107,13 @@ exports.createReservation = async (req, res) => {
             }
         });
 
-        if (existing) return res.status(409).json({ error: 'Horario ocupado.' });
+        if (existing) return res.status(409).json({ error: 'Ocupado' });
 
         const newReservation = await Reservation.create({
             service_id, barber_id, date, start_time, end_time,
             user_name, user_phone, user_email: user_email || null
         });
-
+        
         if(user_email) {
             const barber = await Barber.findByPk(barber_id);
             sendConfirmationEmail(user_email, {
@@ -105,29 +127,26 @@ exports.createReservation = async (req, res) => {
     }
 };
 
-// --- 3. OBTENER RESERVAS (ADMIN) + AUTO-COMPLETAR ---
+// --- 3. ADMIN: GET BOOKINGS + AUTO-COMPLETAR (ESTRICTO) ---
 exports.getBookings = async (req, res) => {
     try {
         const confirmedBookings = await Reservation.findAll({ where: { status: 'confirmed' } });
         
-        // 1. OBTENER HORA ACTUAL UTC
-        const now = new Date();
+        // 1. OBTENEMOS HORA CHILE EXACTA EN FORMATO ESTÁNDAR
+        const nowChileStr = getChileCurrentTime(); 
         
-        // 2. RESTAR 3 HORAS PARA OBTENER HORA CHILE (Manual y seguro)
-        // (Esto evita depender de configuraciones de servidor)
-        const CHILE_OFFSET = 3 * 60 * 60 * 1000; 
-        const nowChile = new Date(now.getTime() - CHILE_OFFSET);
-        
-        // Convertimos a string ISO comparable: "2025-11-27T14:51:00"
-        const nowChileString = nowChile.toISOString().slice(0, 19);
+        console.log(`🇨🇱 HORA CHILE SISTEMA: [${nowChileStr}]`);
 
         const updates = confirmedBookings.map(async (booking) => {
-            // Construimos el string de fin de la cita: "2025-11-27T15:00:00"
-            const bookingEndString = `${booking.date}T${booking.end_time}`;
+            // 2. CONSTRUIMOS HORA FIN CITA CON EL MISMO FORMATO
+            // booking.date es "2025-11-27", booking.end_time es "21:00:00"
+            const bookingEndStr = `${booking.date} ${booking.end_time}`;
             
-            // Comparamos alfabéticamente (ISO lo permite)
-            // "2025-11-27T14:51:00" > "2025-11-27T15:00:00" -> FALSO (No completa)
-            if (nowChileString > bookingEndString) {
+            // console.log(`   🔎 Comparando: Actual[${nowChileStr}] vs FinCita[${bookingEndStr}]`);
+
+            // 3. COMPARACIÓN ALFABÉTICA (Funciona perfecto con YYYY-MM-DD)
+            if (nowChileStr > bookingEndStr) {
+                console.log(`   ✅ Cita #${booking.id} vencida. Cerrando...`);
                 booking.status = 'completed';
                 return booking.save();
             }
@@ -140,14 +159,14 @@ exports.getBookings = async (req, res) => {
             order: [['date', 'ASC'], ['start_time', 'ASC']]
         });
         res.json(bookings);
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Error al obtener reservas' });
     }
 };
 
-// ... (Las demás funciones updateBookingStatus, getClientBookings, cancelClientBooking siguen igual)
-// Asegúrate de copiarlas del archivo anterior o mantenerlas abajo.
+// ... (updateBookingStatus, getClientBookings, cancelClientBooking igual que antes)
 exports.updateBookingStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
@@ -157,7 +176,7 @@ exports.updateBookingStatus = async (req, res) => {
             const updatedBooking = await Reservation.findByPk(id, { include: [Service, Barber] });
             return res.json(updatedBooking);
         }
-        return res.status(404).json({ error: 'Reserva no encontrada' });
+        return res.status(404).json({ error: 'No encontrada' });
     } catch (error) { res.status(500).json({ error: 'Error' }); }
 };
 

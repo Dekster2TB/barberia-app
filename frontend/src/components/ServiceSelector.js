@@ -1,53 +1,98 @@
 import React, { useState, useEffect } from 'react';
 import api from '../config/api';
+import toast from 'react-hot-toast';
 
 const ServiceSelector = ({ onSelectService }) => {
     const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
 
     useEffect(() => {
-        // Pedir los servicios al Backend
         api.get('/api/services')
-            .then(response => {
-                setServices(response.data);
+            .then(res => {
+                setServices(res.data);
                 setLoading(false);
             })
             .catch(err => {
-                console.error("Error conectando:", err);
-                setError('No se pudieron cargar los servicios.');
+                console.error(err);
+                toast.error('Error cargando servicios.');
                 setLoading(false);
             });
     }, []);
 
-    if (loading) return <div className="text-center p-5">Cargando servicios...</div>;
-    if (error) return <div className="alert alert-danger">{error}</div>;
+    // --- FUNCIÓN HELPER: Formatear a Pesos Chilenos ---
+    const formatCLP = (value) => {
+        return new Intl.NumberFormat('es-CL', {
+            style: 'currency',
+            currency: 'CLP'
+        }).format(value);
+    };
+
+    if (loading) return (
+        <div className="text-center py-5">
+            <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+    );
 
     return (
-        <div>
-            <h3 className="text-center mb-4">1. Elige tu Servicio</h3>
-            <div className="row justify-content-center">
-                {services.map(service => (
-                    <div key={service.id} className="col-md-4 mb-3">
-                        <div 
-                            className="card h-100 shadow-sm service-card" 
-                            style={{ cursor: 'pointer', transition: '0.3s' }}
-                            onClick={() => onSelectService(service)}
-                        >
-                            <div className="card-body text-center">
-                                <h5 className="card-title">{service.name}</h5>
-                                <p className="card-text text-muted">
-                                    ⏱ {service.duration_minutes} min
-                                </p>
-                                <h4 className="text-primary">${service.price}</h4>
-                                <button className="btn btn-outline-primary btn-sm mt-2">
-                                    Seleccionar
-                                </button>
+        <div className="text-center animate__animated animate__fadeIn">
+            <h3 className="mb-4">1. Elige tu Servicio</h3>
+            
+            {services.length === 0 ? (
+                <p className="text-muted">No hay servicios disponibles en este momento.</p>
+            ) : (
+                <div className="row justify-content-center">
+                    {services.map(service => (
+                        <div key={service.id} className="col-md-4 col-sm-6 mb-4">
+                            <div 
+                                className="card h-100 shadow-sm border-0 service-card" 
+                                style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+                                onClick={() => onSelectService(service)}
+                                onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
+                                onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            >
+                                {/* IMAGEN OPCIONAL (Si existe en DB) */}
+                                {service.image_url ? (
+                                    <img 
+                                        src={service.image_url} 
+                                        className="card-img-top" 
+                                        alt={service.name} 
+                                        style={{height: '200px', objectFit: 'cover'}} 
+                                    />
+                                ) : (
+                                    // Placeholder si no hay imagen (opcional, puedes quitarlo si prefieres solo texto)
+                                    <div className="d-none"></div> 
+                                )}
+
+                                <div className="card-body d-flex flex-column justify-content-center">
+                                    <h4 className="card-title fw-bold mb-1">{service.name}</h4>
+                                    
+                                    <div className="text-muted small mb-3">
+                                        <i className="bi bi-clock me-1"></i> 
+                                        {service.duration_minutes} min
+                                    </div>
+                                    
+                                    {/* PRECIO FORMATEADO */}
+                                    <h3 className="text-primary fw-bold mb-3">
+                                        {formatCLP(service.price)}
+                                    </h3>
+                                    
+                                    {service.description && (
+                                        <p className="card-text text-muted small mb-3 text-truncate">
+                                            {service.description}
+                                        </p>
+                                    )}
+
+                                    <button className="btn btn-outline-primary w-100 mt-auto">
+                                        Seleccionar
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };

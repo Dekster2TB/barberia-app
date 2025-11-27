@@ -5,15 +5,23 @@ import toast from 'react-hot-toast';
 const ReservationForm = ({ service, barber, date, time, onSuccess, onBack }) => {
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
+    const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // Validador simple de teléfono (acepta 8 a 15 dígitos)
+    // Validador de teléfono
     const isValidPhone = (p) => /^[0-9+]{8,15}$/.test(p);
+
+    // --- HELPER: Formatear a Pesos Chilenos ---
+    const formatCLP = (value) => {
+        return new Intl.NumberFormat('es-CL', {
+            style: 'currency',
+            currency: 'CLP'
+        }).format(value);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        // Validaciones de Frontend
         if (!name.trim()) {
             toast.error('Por favor ingresa tu nombre');
             return;
@@ -24,21 +32,26 @@ const ReservationForm = ({ service, barber, date, time, onSuccess, onBack }) => 
         }
 
         setLoading(true);
-        const loadingToast = toast.loading('Reservando tu hora...');
+        const loadingToast = toast.loading('Procesando reserva...');
 
         try {
             await api.post('/api/bookings', {
                 service_id: service.id,
-                barber_id: barber.id, // <--- ¡AQUÍ ESTÁ LA CORRECCIÓN!
+                barber_id: barber.id,
                 date,
                 start_time: time,
                 user_name: name,
-                user_phone: phone
+                user_phone: phone,
+                user_email: email 
             });
             
-            // Éxito: quitamos el loading y mostramos éxito
             toast.dismiss(loadingToast);
-            toast.success('¡Reserva Exitosa! Te esperamos. 🎉', { duration: 4000 });
+            toast.success('¡Reserva Exitosa! 🎉', { duration: 4000 });
+            
+            if (email) {
+                toast('Revisa tu correo para la confirmación.', { icon: '📧' });
+            }
+
             onSuccess();
 
         } catch (err) {
@@ -57,11 +70,21 @@ const ReservationForm = ({ service, barber, date, time, onSuccess, onBack }) => 
                 <h4 className="mb-0">Confirmar Reserva</h4>
             </div>
             <div className="card-body p-4">
+                
+                {/* Resumen de la Cita con PRECIO FORMATEADO */}
                 <div className="alert alert-light border text-center mb-4">
-                    <h5 className="text-success">{service.name}</h5>
-                    <p className="mb-0">📅 {date} a las ⏰ <strong>{time}</strong></p>
-                    <p className="text-muted small mt-1">Valor: ${service.price}</p>
-                    <p className="text-muted small mt-1">Atendido por: {barber.name}</p> {/* Mostrar barbero */}
+                    <h5 className="text-success fw-bold">{service.name}</h5>
+                    <div className="d-flex justify-content-center gap-3 text-muted small mt-2">
+                        <span>📅 {date}</span>
+                        <span>⏰ {time}</span>
+                    </div>
+                    <p className="text-muted small mt-1">
+                        Atendido por: <strong>{barber.name}</strong>
+                    </p>
+                    {/* AQUÍ APLICAMOS EL FORMATO */}
+                    <p className="fw-bold text-dark mt-1 fs-5">
+                        Valor: {formatCLP(service.price)}
+                    </p>
                 </div>
 
                 <form onSubmit={handleSubmit}>
@@ -76,6 +99,18 @@ const ReservationForm = ({ service, barber, date, time, onSuccess, onBack }) => 
                         />
                     </div>
                     
+                    <div className="mb-3">
+                        <label className="form-label fw-bold">Correo Electrónico <span className="text-muted fw-normal">(Opcional)</span></label>
+                        <input 
+                            type="email" 
+                            className="form-control form-control-lg" 
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="nombre@ejemplo.com" 
+                        />
+                        <div className="form-text">Te enviaremos el comprobante aquí.</div>
+                    </div>
+
                     <div className="mb-4">
                         <label className="form-label fw-bold">Teléfono de Contacto</label>
                         <input 
@@ -85,12 +120,11 @@ const ReservationForm = ({ service, barber, date, time, onSuccess, onBack }) => 
                             onChange={(e) => setPhone(e.target.value)}
                             placeholder="Ej: 9 1234 5678"
                         />
-                        <div className="form-text">Te contactaremos a este número si hay cambios.</div>
                     </div>
 
                     <div className="d-grid gap-2">
                         <button type="submit" className="btn btn-success btn-lg" disabled={loading}>
-                            {loading ? 'Procesando...' : '✅ Confirmar Cita'}
+                            {loading ? 'Confirmando...' : '✅ Confirmar Cita'}
                         </button>
                         <button type="button" className="btn btn-outline-secondary" onClick={onBack} disabled={loading}>
                             Cancelar

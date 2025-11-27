@@ -3,9 +3,11 @@ const router = express.Router();
 const serviceController = require('../controllers/serviceController');
 
 // GET /api/services -> Llama a getServices
-router.get('/', serviceController.getServices);
+// Verificamos que la función exista antes de asignarla
+if (!serviceController.getServices) {
+    throw new Error('Error: La función getServices no está definida en serviceController.');
+}
 
-// POST /api/services -> Llama a createService
-router.post('/', serviceController.createService);
+router.get('/', serviceController.getServices);
 
 module.exports = router;

@@ -8,10 +8,8 @@ const ReservationForm = ({ service, barber, date, time, onSuccess, onBack }) => 
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // Validador de teléfono
     const isValidPhone = (p) => /^[0-9+]{8,15}$/.test(p);
 
-    // --- HELPER: Formatear a Pesos Chilenos ---
     const formatCLP = (value) => {
         return new Intl.NumberFormat('es-CL', {
             style: 'currency',
@@ -71,17 +69,19 @@ const ReservationForm = ({ service, barber, date, time, onSuccess, onBack }) => 
             </div>
             <div className="card-body p-4">
                 
-                {/* Resumen de la Cita con PRECIO FORMATEADO */}
+                {/* Resumen de la Cita */}
                 <div className="alert alert-light border text-center mb-4">
                     <h5 className="text-success fw-bold">{service.name}</h5>
+                    
                     <div className="d-flex justify-content-center gap-3 text-muted small mt-2">
                         <span>📅 {date}</span>
                         <span>⏰ {time}</span>
                     </div>
+                    
                     <p className="text-muted small mt-1">
                         Atendido por: <strong>{barber.name}</strong>
                     </p>
-                    {/* AQUÍ APLICAMOS EL FORMATO */}
+
                     <p className="fw-bold text-dark mt-1 fs-5">
                         Valor: {formatCLP(service.price)}
                     </p>
@@ -95,7 +95,7 @@ const ReservationForm = ({ service, barber, date, time, onSuccess, onBack }) => 
                             className="form-control form-control-lg" 
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="Ej: Diego Catalán"
+                            placeholder="Nombre Apellido" 
                         />
                     </div>
                     
@@ -120,6 +120,14 @@ const ReservationForm = ({ service, barber, date, time, onSuccess, onBack }) => 
                             onChange={(e) => setPhone(e.target.value)}
                             placeholder="Ej: 9 1234 5678"
                         />
+                    </div>
+
+                    {/* --- ADVERTENCIA DE PUNTUALIDAD --- */}
+                    <div className="alert alert-warning d-flex align-items-start mb-4" role="alert">
+                        <i className="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
+                        <div className="small">
+                            <strong>Importante:</strong> Tienes una tolerancia de <strong>10 minutos</strong>. Si llegas tarde, tu hora podría ser cancelada o reasignada.
+                        </div>
                     </div>
 
                     <div className="d-grid gap-2">

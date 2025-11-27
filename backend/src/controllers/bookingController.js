@@ -8,16 +8,34 @@ const { sendConfirmationEmail } = require('../config/mailer');
 const WORK_START_HOUR = 10; 
 const WORK_END_HOUR = 19;   
 
-// --- 1. OBTENER DISPONIBILIDAD (PÚBLICO) ---
+// --- HELPERS DE TIEMPO (Matemáticas de minutos) ---
+const timeToMinutes = (timeStr) => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+};
+
+const minutesToTime = (minutes) => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
+
+// --- 1. OBTENER DISPONIBILIDAD INTELIGENTE (PÚBLICO) ---
 exports.getAvailability = async (req, res) => {
     try {
-        const { date, barber_id } = req.query;
+        // AHORA RECIBIMOS TAMBIÉN EL service_id PARA SABER LA DURACIÓN
+        const { date, barber_id, service_id } = req.query;
 
-        if (!date || !barber_id) {
-            return res.status(400).json({ error: 'Faltan parámetros: date y barber_id' });
+        if (!date || !barber_id || !service_id) {
+            return res.status(400).json({ error: 'Faltan parámetros: date, barber_id o service_id' });
         }
 
-        // Buscar reservas existentes para ese barbero en esa fecha
+        // 1. Obtener la duración del servicio solicitado
+        const service = await Service.findByPk(service_id);
+        if (!service) return res.status(404).json({ error: 'Servicio no encontrado' });
+        const serviceDuration = service.duration_minutes; // Ej: 60
+
+        // 2. Obtener reservas existentes del barbero para ese día
         const reservations = await Reservation.findAll({
             where: {
                 date: date,
@@ -26,21 +44,40 @@ exports.getAvailability = async (req, res) => {
             }
         });
 
-        // Generar slots cada 30 min
-        let allSlots = [];
-        for (let h = WORK_START_HOUR; h < WORK_END_HOUR; h++) {
-            const hourString = h < 10 ? `0${h}` : `${h}`;
-            allSlots.push(`${hourString}:00`);
-            allSlots.push(`${hourString}:30`);
+        // 3. Generar slots base (cada 30 min)
+        let possibleSlots = [];
+        // Convertimos todo a minutos para calcular fácil
+        const startMinutes = WORK_START_HOUR * 60;
+        const endMinutes = WORK_END_HOUR * 60;
+        const step = 30; // Intervalos de 30 min
+
+        for (let time = startMinutes; time < endMinutes; time += step) {
+            possibleSlots.push(time);
         }
 
-        // Filtrar ocupados
-        const availableSlots = allSlots.filter(slot => {
-            const isBusy = reservations.some(r => String(r.start_time).startsWith(slot));
-            return !isBusy; 
+        // 4. FILTRADO INTELIGENTE DE COLISIONES
+        const availableSlots = possibleSlots.filter(slotStart => {
+            const slotEnd = slotStart + serviceDuration;
+
+            // Regla A: ¿El servicio termina después de la hora de cierre?
+            if (slotEnd > endMinutes) return false;
+
+            // Regla B: ¿Choca con alguna reserva existente?
+            // Una colisión ocurre si: (StartA < EndB) y (EndA > StartB)
+            const hasCollision = reservations.some(r => {
+                const rStart = timeToMinutes(r.start_time);
+                const rEnd = timeToMinutes(r.end_time);
+
+                return (slotStart < rEnd && slotEnd > rStart);
+            });
+
+            return !hasCollision;
         });
 
-        res.json(availableSlots);
+        // 5. Convertir minutos de vuelta a formato "HH:mm"
+        const formattedSlots = availableSlots.map(minutes => minutesToTime(minutes));
+
+        res.json(formattedSlots);
 
     } catch (error) {
         console.error(error);
@@ -48,7 +85,7 @@ exports.getAvailability = async (req, res) => {
     }
 };
 
-// --- 2. CREAR RESERVA (PÚBLICO) ---
+// --- 2. CREAR RESERVA ---
 exports.createReservation = async (req, res) => {
     try {
         const { service_id, barber_id, date, start_time, user_name, user_phone, user_email } = req.body;
@@ -57,26 +94,39 @@ exports.createReservation = async (req, res) => {
             return res.status(400).json({ error: 'Faltan campos obligatorios' });
         }
 
+        // Calcular hora de fin basada en la duración del servicio real
+        const service = await Service.findByPk(service_id);
+        if (!service) return res.status(404).json({ error: 'Servicio inválido' });
+        
+        const startMin = timeToMinutes(start_time);
+        const endMin = startMin + service.duration_minutes;
+        const end_time = minutesToTime(endMin);
+
+        // Validación de duplicados (Doble chequeo de seguridad)
         const existing = await Reservation.findOne({
             where: { 
-                date, start_time, barber_id, 
-                status: { [Op.not]: 'cancelled' }
+                date, 
+                barber_id, 
+                status: { [Op.not]: 'cancelled' },
+                [Op.or]: [
+                    // Lógica de colisión en SQL: (StartA < EndB AND EndA > StartB)
+                    {
+                        start_time: { [Op.lt]: end_time },
+                        end_time: { [Op.gt]: start_time }
+                    }
+                ]
             }
         });
 
         if (existing) {
-            return res.status(409).json({ error: 'Horario no disponible.' });
+            return res.status(409).json({ error: 'El horario ya fue ocupado por otra persona.' });
         }
 
         const newReservation = await Reservation.create({
-            service_id, barber_id, date, start_time,
-            end_time: calculateEndTime(start_time),
-            user_name, user_phone,
-            user_email: user_email || null
+            service_id, barber_id, date, start_time, end_time,
+            user_name, user_phone, user_email: user_email || null
         });
 
-        // Enviar Correo (si hay email)
-        const service = await Service.findByPk(service_id);
         const barber = await Barber.findByPk(barber_id);
         
         if(user_email) {
@@ -88,7 +138,6 @@ exports.createReservation = async (req, res) => {
                 start_time
             });
         }
-
         res.status(201).json(newReservation);
 
     } catch (error) {
@@ -97,73 +146,53 @@ exports.createReservation = async (req, res) => {
     }
 };
 
+// ... (Resto de funciones getBookings, updateBookingStatus, getClientBookings, cancelClientBooking IGUAL QUE ANTES) ...
+// Copia las funciones restantes del archivo anterior aquí abajo para no perderlas.
+
 // --- 3. OBTENER TODAS LAS RESERVAS (ADMIN) + AUTO-COMPLETAR ---
 exports.getBookings = async (req, res) => {
     try {
-        // 1. AUTO-COMPLETADO MÁGICO
-        const confirmedBookings = await Reservation.findAll({
-            where: { status: 'confirmed' }
-        });
-
+        const confirmedBookings = await Reservation.findAll({ where: { status: 'confirmed' } });
         const now = new Date();
-        
         const updates = confirmedBookings.map(async (booking) => {
-            // Crear fecha de fin de la reserva (YYYY-MM-DDTHH:mm)
             const bookingEnd = new Date(`${booking.date}T${booking.end_time}`);
-            
-            // Si la hora actual es mayor que el fin de la cita
             if (now > bookingEnd) {
                 booking.status = 'completed';
                 return booking.save();
             }
         });
-
         await Promise.all(updates);
-
-        // 2. TRAER LISTA ACTUALIZADA
         const bookings = await Reservation.findAll({
             include: [Service, Barber], 
             order: [['date', 'ASC'], ['start_time', 'ASC']]
         });
-        
         res.json(bookings);
-
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Error al obtener reservas' });
     }
 };
 
-// --- 4. ACTUALIZAR ESTADO (ADMIN - PATCH) ---
 exports.updateBookingStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
-
     const validStatuses = ['confirmed', 'cancelled', 'completed'];
-    if (!validStatuses.includes(status)) {
-        return res.status(400).json({ error: 'Estado inválido' });
-    }
-
+    if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Estado inválido' });
     try {
         const [updated] = await Reservation.update({ status }, { where: { id } });
-
         if (updated) {
             const updatedBooking = await Reservation.findByPk(id, { include: [Service, Barber] });
             return res.json(updatedBooking);
         }
         return res.status(404).json({ error: 'Reserva no encontrada' });
-
     } catch (error) {
-        console.error(error);
         res.status(500).json({ error: 'Error al actualizar estado' });
     }
 };
 
-// --- 5. BUSCAR RESERVAS POR TELÉFONO (CLIENTE) ---
 exports.getClientBookings = async (req, res) => {
     const { phone } = req.query;
     if (!phone) return res.status(400).json({ error: 'Teléfono requerido' });
-
     try {
         const bookings = await Reservation.findAll({
             where: { user_phone: phone },
@@ -176,31 +205,15 @@ exports.getClientBookings = async (req, res) => {
     }
 };
 
-// --- 6. CANCELAR RESERVA PROPIA (CLIENTE) ---
 exports.cancelClientBooking = async (req, res) => {
     const { id } = req.params;
     try {
         const booking = await Reservation.findByPk(id);
         if (!booking) return res.status(404).json({ error: 'Reserva no encontrada' });
-        
         booking.status = 'cancelled';
         await booking.save();
-        
         res.json({ message: 'Cancelada con éxito' });
     } catch (error) {
         res.status(500).json({ error: 'Error al cancelar' });
     }
 };
-
-// --- FUNCIÓN AUXILIAR ---
-function calculateEndTime(startTime) {
-    const [hour, minute] = startTime.split(':').map(Number);
-    let newMinute = minute + 30;
-    let newHour = hour;
-    if (newMinute >= 60) {
-        newMinute -= 60;
-        newHour += 1;
-    }
-    const finalHour = newHour < 10 ? `0${newHour}` : `${newHour}`;
-    return `${finalHour}:${newMinute === 0 ? '00' : newMinute}`;
-}

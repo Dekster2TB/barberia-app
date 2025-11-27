@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import api from '../config/api';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
-import { format, isSameDay } from 'date-fns'; // <--- Importamos isSameDay
+import { format, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 
+// Registrar idioma español para el calendario
 registerLocale('es', es);
 
-const DateTimeSelector = ({ onSelectDateTime, barberId }) => {
+const DateTimeSelector = ({ onSelectDateTime, barberId, serviceId, serviceDuration }) => {
     const [startDate, setStartDate] = useState(null);
     const [slots, setSlots] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -18,49 +19,54 @@ const DateTimeSelector = ({ onSelectDateTime, barberId }) => {
             setLoading(true);
             setSlots([]); 
             
+            // Formato YYYY-MM-DD para la API
             const dateString = format(startDate, 'yyyy-MM-dd');
 
-            api.get(`/api/bookings/available?date=${dateString}&barber_id=${barberId}`)
+            api.get(`/api/bookings/available?date=${dateString}&barber_id=${barberId}&service_id=${serviceId}`)
                 .then(res => {
-                    setSlots(res.data);
+                    let availableSlots = res.data;
+
+                    // --- INTELIGENCIA DE DURACIÓN ---
+                    // Si el servicio dura 60 min o más, mostramos solo horas en punto (10:00, 11:00)
+                    // para que la grilla se vea más ordenada.
+                    if (serviceDuration && serviceDuration >= 60) {
+                         availableSlots = availableSlots.filter(time => time.endsWith(':00'));
+                    }
+
+                    setSlots(availableSlots);
                     setLoading(false);
                     
-                    if(res.data.length === 0) {
-                        toast('No hay horas disponibles para este día.', { icon: '📅' });
+                    if(availableSlots.length === 0) {
+                        toast('Agenda completa para este día.', { icon: '📅' });
                     }
                 })
                 .catch(err => {
-                    console.error("Error cargando disponibilidad:", err);
-                    toast.error('Error al cargar los horarios.');
+                    console.error("Error:", err);
+                    toast.error('Error al cargar horarios.');
                     setLoading(false);
                 });
         }
-    }, [startDate, barberId]);
+    }, [startDate, barberId, serviceId, serviceDuration]);
 
-    // --- LÓGICA INTELIGENTE DE TIEMPO ---
+    // --- INTELIGENCIA DE TIEMPO REAL ---
+    // Bloquea las horas que ya pasaron hoy
     const isTimePast = (timeString) => {
-        // 1. Si no hemos seleccionado fecha, no es pasado
         if (!startDate) return false;
-
         const now = new Date();
-
-        // 2. Si la fecha seleccionada es FUTURA (mañana, el mes que viene), ninguna hora ha pasado.
-        if (!isSameDay(startDate, now)) {
-            return false; 
-        }
-
-        // 3. Si es HOY, comparamos las horas.
-        // Convertimos "10:30" a números: horas=10, minutos=30
-        const [slotHour, slotMinute] = timeString.split(':').map(Number);
         
+        // Si no es hoy, no bloqueamos nada
+        if (!isSameDay(startDate, now)) return false; 
+
+        const [slotHour, slotMinute] = timeString.split(':').map(Number);
         const currentHour = now.getHours();
         const currentMinute = now.getMinutes();
 
-        // 4. Comparación matemática simple
-        if (slotHour < currentHour) return true; // Ya pasó la hora (ej: son las 12, slot es 10)
-        if (slotHour === currentHour && slotMinute < currentMinute) return true; // Misma hora, pero minutos pasados
-
-        return false; // Todavía no pasa
+        // Si la hora del bloque es menor a la actual, es pasado
+        if (slotHour < currentHour) return true;
+        // Si es la misma hora pero minutos pasados, también
+        if (slotHour === currentHour && slotMinute < currentMinute) return true;
+        
+        return false;
     };
 
     return (
@@ -85,33 +91,32 @@ const DateTimeSelector = ({ onSelectDateTime, barberId }) => {
             {startDate && (
                 <div className="animate__animated animate__fadeInUp">
                     <h5 className="text-primary mb-3">
-                        Horarios para el {format(startDate, "dd 'de' MMMM", { locale: es })}:
+                        Horarios disponibles {serviceDuration ? `(${serviceDuration} min)` : ''}:
                     </h5>
                     
                     {loading ? (
                         <div className="py-3">
                             <div className="spinner-border text-secondary" role="status"></div>
-                            <p className="text-muted small mt-2">Consultando agenda...</p>
+                            <p className="text-muted small mt-2">Buscando espacios...</p>
                         </div>
                     ) : (
                         <div className="d-flex flex-wrap justify-content-center gap-2">
                             {slots.length > 0 ? (
                                 slots.map(time => {
-                                    // Calculamos si el botón debe estar deshabilitado
+                                    // Calculamos si el botón debe estar bloqueado (gris)
                                     const disabled = isTimePast(time);
-
+                                    
                                     return (
                                         <button
                                             key={time}
                                             className={`btn px-4 py-2 fw-bold shadow-sm ${
                                                 disabled 
-                                                ? 'btn-secondary opacity-50' // Estilo Gris (Pasado)
-                                                : 'btn-outline-primary'      // Estilo Azul (Disponible)
+                                                ? 'btn-secondary opacity-50' 
+                                                : 'btn-outline-primary'
                                             }`}
                                             style={{ minWidth: '90px', cursor: disabled ? 'not-allowed' : 'pointer' }}
-                                            // Si está deshabilitado, el onClick no hace nada
                                             onClick={() => !disabled && onSelectDateTime(format(startDate, 'yyyy-MM-dd'), time)}
-                                            disabled={disabled} // Atributo HTML para accesibilidad
+                                            disabled={disabled}
                                         >
                                             {time}
                                         </button>
@@ -119,7 +124,7 @@ const DateTimeSelector = ({ onSelectDateTime, barberId }) => {
                                 })
                             ) : (
                                 <div className="alert alert-warning w-75 mx-auto">
-                                    Lo sentimos, agenda llena para este día. 😔
+                                    Lo sentimos, no hay cupos disponibles hoy. 😔
                                 </div>
                             )}
                         </div>

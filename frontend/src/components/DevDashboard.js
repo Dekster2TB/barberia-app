@@ -3,19 +3,26 @@ import api from '../config/api';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-// 👇 IMPORTANTE: Importar los gestores que creamos
+// Importar los gestores
 import ServicesManager from './managers/ServicesManager';
 import BarbersManager from './managers/BarbersManager';
 
 const DevDashboard = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('stats'); // Estado para controlar qué pestaña se ve
+    const [activeTab, setActiveTab] = useState('stats');
 
     const { user, logout } = useContext(AuthContext);
     const navigate = useNavigate();
 
-    // Cargar datos financieros al inicio (siempre necesario para el header)
+    // --- HELPER: Formatear a Pesos Chilenos ---
+    const formatCLP = (value) => {
+        return new Intl.NumberFormat('es-CL', {
+            style: 'currency',
+            currency: 'CLP'
+        }).format(value);
+    };
+
     useEffect(() => {
         api.get('/api/finance/stats')
             .then(res => {
@@ -32,35 +39,42 @@ const DevDashboard = () => {
             });
     }, [navigate]);
 
-    // --- VISTA DE ESTADÍSTICAS (Componente interno) ---
+    // --- VISTA DE ESTADÍSTICAS ---
     const StatsView = () => {
         if (!data) return <div className="text-center text-danger">No hay datos disponibles.</div>;
         const { stats, details } = data;
 
         return (
             <div className="animate__animated animate__fadeIn">
+                {/* TARJETAS DE RESUMEN */}
                 <div className="row mb-4">
-                    {/* Tarjetas de KPI */}
+                    {/* 1. Mi Comisión */}
                     <div className="col-md-4 mb-3">
                         <div className="card text-white bg-success shadow h-100 border-0">
                             <div className="card-header fw-bold bg-success border-0">Mi Comisión Total</div>
                             <div className="card-body text-center">
-                                <h1 className="display-4 fw-bold">${stats.developer_commission.toLocaleString()}</h1>
-                                <p className="card-text opacity-75 pt-2 mt-2 border-top border-white">
-                                    {stats.completed_bookings} citas x ${stats.commission_rate}
+                                {/* APLICAMOS FORMATO AQUÍ */}
+                                <h1 className="display-4 fw-bold">{formatCLP(stats.developer_commission)}</h1>
+                                <p className="card-text opacity-75 border-top border-white pt-2 mt-2">
+                                    {stats.completed_bookings} citas x {formatCLP(stats.commission_rate)}
                                 </p>
                             </div>
                         </div>
                     </div>
+
+                    {/* 2. Ventas Barbería */}
                     <div className="col-md-4 mb-3">
                         <div className="card bg-light shadow h-100 border-secondary">
                             <div className="card-header fw-bold text-secondary border-0">Ventas Barbería</div>
                             <div className="card-body text-center">
-                                <h2 className="display-5 text-dark fw-bold">${stats.barbershop_revenue.toLocaleString()}</h2>
+                                {/* APLICAMOS FORMATO AQUÍ */}
+                                <h2 className="display-5 text-dark fw-bold">{formatCLP(stats.barbershop_revenue)}</h2>
                                 <p className="card-text text-muted">Facturación bruta total</p>
                             </div>
                         </div>
                     </div>
+
+                    {/* 3. Citas Completadas */}
                     <div className="col-md-4 mb-3">
                         <div className="card text-white bg-info shadow h-100 border-0">
                             <div className="card-header fw-bold bg-info text-dark border-0">Citas Completadas</div>
@@ -72,7 +86,7 @@ const DevDashboard = () => {
                     </div>
                 </div>
 
-                {/* Tabla de detalles financieros */}
+                {/* TABLA DE DETALLES */}
                 <div className="card shadow border-0">
                     <div className="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                         <h5 className="mb-0">Detalle de Transacciones</h5>
@@ -85,8 +99,8 @@ const DevDashboard = () => {
                                     <th>ID</th>
                                     <th>Fecha</th>
                                     <th>Servicio</th>
-                                    <th>Valor</th>
-                                    <th className="text-end">Comisión</th>
+                                    <th>Valor Servicio</th>
+                                    <th className="text-end">Tu Comisión</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -95,8 +109,9 @@ const DevDashboard = () => {
                                         <td><span className="badge bg-secondary">#{item.id}</span></td>
                                         <td>{item.date}</td>
                                         <td>{item.service}</td>
-                                        <td>${item.price}</td>
-                                        <td className="text-end text-success fw-bold">+${item.commission}</td>
+                                        {/* APLICAMOS FORMATO EN LA TABLA */}
+                                        <td>{formatCLP(item.price)}</td>
+                                        <td className="text-end text-success fw-bold">+{formatCLP(item.commission)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -117,7 +132,6 @@ const DevDashboard = () => {
 
     return (
         <div className="container mt-5 pb-5">
-            {/* ENCABEZADO PRINCIPAL */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h2 className="fw-bold text-primary mb-0">👨‍💻 Panel Maestro</h2>
@@ -133,7 +147,6 @@ const DevDashboard = () => {
                 </div>
             </div>
 
-            {/* NAVEGACIÓN DE PESTAÑAS (TABS) */}
             <ul className="nav nav-pills nav-fill mb-4 p-1 bg-light rounded shadow-sm">
                 <li className="nav-item">
                     <button 
@@ -161,10 +174,8 @@ const DevDashboard = () => {
                 </li>
             </ul>
 
-            {/* CONTENIDO DINÁMICO SEGÚN PESTAÑA */}
             <div className="mb-5">
                 {activeTab === 'stats' && <StatsView />}
-                {/* Renderizamos los componentes de gestión cuando la pestaña está activa */}
                 {activeTab === 'services' && <ServicesManager />}
                 {activeTab === 'barbers' && <BarbersManager />}
             </div>

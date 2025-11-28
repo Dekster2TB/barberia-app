@@ -1,5 +1,6 @@
 const Reservation = require('../models/Reservation');
 const Service = require('../models/Service');
+const Barber = require('../models/Barber'); // <--- Importamos el modelo Barbero
 const { Op } = require('sequelize');
 const sequelize = require('../config/db');
 
@@ -23,8 +24,9 @@ exports.getMonthlyStats = async (req, res) => {
                     [Op.between]: [startDate, endDate]
                 }
             },
-            include: [Service],
-            order: [['date', 'DESC'], ['start_time', 'DESC']] // Ordenar por fecha y hora
+            // 👇 AQUI ESTÁ LA CLAVE: Incluimos también al Barbero
+            include: [Service, Barber],
+            order: [['date', 'DESC'], ['start_time', 'DESC']]
         });
 
         const totalBookings = bookings.length;
@@ -43,10 +45,13 @@ exports.getMonthlyStats = async (req, res) => {
                 developer_commission: developerEarnings,
                 commission_rate: COMISION_POR_RESERVA
             },
+            // 👇 Mapeamos los nuevos campos para el frontend
             details: bookings.map(b => ({
                 id: b.id,
                 date: b.date,
-                time: b.start_time, // <--- NUEVO DATO: HORA
+                time: b.start_time,
+                client: b.user_name, // Nombre del Cliente
+                barber: b.Barber ? b.Barber.name : 'Sin asignar', // Nombre del Barbero
                 service: b.Service ? b.Service.name : 'N/A',
                 price: b.Service ? b.Service.price : 0,
                 commission: COMISION_POR_RESERVA

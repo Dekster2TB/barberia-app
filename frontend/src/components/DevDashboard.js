@@ -15,12 +15,15 @@ const DevDashboard = () => {
     const { user, logout } = useContext(AuthContext);
     const navigate = useNavigate();
 
-    // --- HELPER: Formatear Moneda ---
+    // --- HELPER: Formatear Moneda (CLP) ---
     const formatCLP = (value) => {
+        const numberValue = Number(value);
         return new Intl.NumberFormat('es-CL', {
             style: 'currency',
-            currency: 'CLP'
-        }).format(value);
+            currency: 'CLP',
+            minimumFractionDigits: 0, 
+            maximumFractionDigits: 0  
+        }).format(numberValue);
     };
 
     // Cargar datos financieros al inicio
@@ -32,7 +35,7 @@ const DevDashboard = () => {
             })
             .catch(err => {
                 console.error(err);
-                // Si el usuario no es developer, lo echamos
+                // Si el usuario no es developer, lo echamos al admin normal
                 if (err.response?.status === 403) {
                     alert('Acceso restringido a Desarrolladores.');
                     navigate('/admin');
@@ -98,7 +101,9 @@ const DevDashboard = () => {
                                 <tr>
                                     <th>ID</th>
                                     <th>Fecha</th>
-                                    <th>Hora</th>
+                                    <th>Hora</th> {/* Nueva Columna */}
+                                    <th>Cliente</th> {/* Nueva Columna */}
+                                    <th>Barbero</th> {/* Nueva Columna */}
                                     <th>Servicio</th>
                                     <th>Valor</th>
                                     <th className="text-end">Comisión</th>
@@ -110,6 +115,13 @@ const DevDashboard = () => {
                                         <td><span className="badge bg-secondary">#{item.id}</span></td>
                                         <td>{item.date}</td>
                                         <td className="fw-bold text-primary">{item.time ? item.time.slice(0, 5) : '--:--'}</td>
+                                        
+                                        {/* Datos del Cliente y Barbero */}
+                                        <td className="fw-bold">{item.client}</td>
+                                        <td>
+                                            <span className="badge bg-info text-dark">{item.barber}</span>
+                                        </td>
+                                        
                                         <td>{item.service}</td>
                                         <td>{formatCLP(item.price)}</td>
                                         <td className="text-end text-success fw-bold">+{formatCLP(item.commission)}</td>
@@ -179,7 +191,6 @@ const DevDashboard = () => {
 
             {/* CONTENIDO DINÁMICO SEGÚN PESTAÑA */}
             <div className="mb-5">
-                {/* Aquí ocurre la magia: Mostramos el componente según el estado activeTab */}
                 {activeTab === 'stats' && <StatsView />}
                 {activeTab === 'services' && <ServicesManager />}
                 {activeTab === 'barbers' && <BarbersManager />}

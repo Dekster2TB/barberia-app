@@ -9,6 +9,7 @@ const AdminPanel = () => {
     const { user, logout } = useContext(AuthContext); 
     const navigate = useNavigate();
 
+    // --- CARGAR DATOS ---
     const fetchBookings = () => {
         setLoading(true);
         api.get('/api/bookings') 
@@ -28,39 +29,42 @@ const AdminPanel = () => {
 
     useEffect(() => {
         fetchBookings();
-        // Refrescar cada 30 segundos para ver cambios de estado en vivo
-        const interval = setInterval(fetchBookings, 30000);
+        const interval = setInterval(fetchBookings, 60000);
         return () => clearInterval(interval);
     }, []);
 
+    // --- ACTUALIZAR ESTADO ---
     const handleStatusUpdate = async (id, newStatus) => {
-        if (!window.confirm(`¿Estás seguro de cambiar el estado?`)) return;
+        // Mensaje personalizado según la acción
+        let confirmMsg = "¿Estás seguro?";
+        if (newStatus === 'completed') confirmMsg = "✅ ¿Confirmar que el servicio se realizó y COBRAR?";
+        if (newStatus === 'cancelled') confirmMsg = "⚠️ ¿Cancelar cita? (No generará comisión)";
+        if (newStatus === 'confirmed') confirmMsg = "↺ ¿Restaurar cita a estado activo?";
+
+        if (!window.confirm(confirmMsg)) return;
+
         try {
             await api.patch(`/api/bookings/${id}`, { status: newStatus });
             fetchBookings(); 
         } catch (err) {
-            alert(`Error: ${err.response?.status}`);
+            alert(`Error al actualizar: ${err.response?.status}`);
         }
     };
 
-    // --- LÓGICA VISUAL ---
+    // --- VISUALIZACIÓN ---
     const getDisplayStatus = (booking) => {
-        // Si la DB dice que está terminada o cancelada, mandan ellos.
         if (booking.status === 'cancelled') return { label: 'CANCELADO', class: 'bg-danger' };
-        if (booking.status === 'completed') return { label: 'COMPLETADO', class: 'bg-primary' };
+        if (booking.status === 'completed') return { label: 'COBRADO', class: 'bg-primary' };
 
-        // Si dice 'confirmed', verificamos si está ocurriendo AHORA
         const now = new Date();
         const start = new Date(`${booking.date}T${booking.start_time}`);
         const end = new Date(`${booking.date}T${booking.end_time}`);
 
         if (now >= start && now < end) {
-            return { label: 'EN PROGRESO ✂️', class: 'bg-warning text-dark fw-bold border border-dark' }; 
+            return { label: 'EN PROCESO ✂️', class: 'bg-warning text-dark fw-bold border border-dark' }; 
         }
-
         if (now > end) {
-            // Este estado aparece si la hora ya pasó pero el backend aún no ha procesado el cierre
-            return { label: 'FINALIZANDO...', class: 'bg-secondary' };
+            return { label: 'POR COBRAR', class: 'bg-secondary' };
         }
 
         return { label: 'CONFIRMADO', class: 'bg-success' };
@@ -87,7 +91,7 @@ const AdminPanel = () => {
                         <table className="table table-hover table-striped mb-0 align-middle">
                             <thead className="table-dark">
                                 <tr>
-                                    <th># ID</th>
+                                    <th>#</th>
                                     <th>Fecha</th>
                                     <th>Hora</th>
                                     <th>Cliente</th>
@@ -95,18 +99,19 @@ const AdminPanel = () => {
                                     <th>Servicio</th>
                                     <th>Barbero</th>
                                     <th className="text-center">Estado</th>
-                                    <th className="text-center">Acciones</th> 
+                                    <th className="text-center" style={{minWidth: '150px'}}>Acciones</th> 
                                 </tr>
                             </thead>
                             <tbody>
                                 {bookings.map((b) => {
                                     const statusInfo = getDisplayStatus(b);
+                                    
                                     return (
                                         <tr key={b.id}>
                                             <td>{b.id}</td>
                                             <td>{b.date}</td>
                                             <td className="fw-bold">{b.start_time.slice(0, 5)}</td>
-                                            <td className="fw-bold">{b.user_name}</td>
+                                            <td>{b.user_name}</td>
                                             <td><a href={`tel:${b.user_phone}`} className="text-decoration-none text-dark">{b.user_phone}</a></td>
                                             <td>{b.Service ? b.Service.name : <span className="text-muted">--</span>}</td>
                                             <td>{b.Barber ? <span className="badge bg-info text-dark">{b.Barber.name}</span> : <span className="text-muted">--</span>}</td>
@@ -119,11 +124,33 @@ const AdminPanel = () => {
 
                                             <td className="text-center">
                                                 {b.status === 'confirmed' ? (
+                                                    // MODO ACTIVO: Botones Principales
                                                     <div className="btn-group" role="group">
-                                                        <button className="btn btn-sm btn-success" onClick={() => handleStatusUpdate(b.id, 'completed')}>✔</button>
-                                                        <button className="btn btn-sm btn-outline-danger" onClick={() => handleStatusUpdate(b.id, 'cancelled')}>✖</button>
+                                                        <button 
+                                                            className="btn btn-sm btn-success fw-bold"
+                                                            onClick={() => handleStatusUpdate(b.id, 'completed')}
+                                                            title="Servicio realizado -> Genera Comisión"
+                                                        >
+                                                            $$ Cobrar
+                                                        </button>
+                                                        <button 
+                                                            className="btn btn-sm btn-outline-danger"
+                                                            onClick={() => handleStatusUpdate(b.id, 'cancelled')}
+                                                            title="Cliente no llegó"
+                                                        >
+                                                            ✖
+                                                        </button>
                                                     </div>
-                                                ) : <small className="text-muted">--</small>}
+                                                ) : (
+                                                    // MODO FINALIZADO: Botón de Corrección (Salvavidas)
+                                                    <button 
+                                                        className="btn btn-sm btn-link text-secondary text-decoration-none"
+                                                        onClick={() => handleStatusUpdate(b.id, 'confirmed')}
+                                                        title="Me equivoqué, volver a activar"
+                                                    >
+                                                        ↺ Corregir
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     );

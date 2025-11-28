@@ -26,28 +26,22 @@ const calculateEndTime = (startTime, durationMinutes = 30) => {
     return minutesToTime(endMin);
 };
 
-// --- FUNCIÓN INFALIBLE: Obtener Hora Chile en Formato YYYY-MM-DD HH:mm:ss ---
+// --- OBTENER HORA CHILE ---
 const getChileCurrentTime = () => {
     const now = new Date();
-    
-    // Pedimos las partes por separado para armar el rompecabezas nosotros mismos
-    // Esto evita que Windows nos de "27/11" y Linux "11/27"
-    const formatter = new Intl.DateTimeFormat('en-US', {
+    const formatter = new Intl.DateTimeFormat('en-CA', { 
         timeZone: 'America/Santiago',
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit', second: '2-digit',
-        hour12: false // Formato 24 horas
+        hour12: false
     });
     
     const parts = formatter.formatToParts(now);
-    const p = {};
-    parts.forEach(({ type, value }) => p[type] = value);
-    
-    // Retornamos SIEMPRE: Año-Mes-Día Hora:Minuto:Segundo
-    return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
+    const get = (type) => parts.find(p => p.type === type).value;
+    return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
 };
 
-// --- 1. OBTENER DISPONIBILIDAD ---
+// --- 1. DISPONIBILIDAD ---
 exports.getAvailability = async (req, res) => {
     try {
         const { date, barber_id, service_id } = req.query;
@@ -127,46 +121,32 @@ exports.createReservation = async (req, res) => {
     }
 };
 
-// --- 3. ADMIN: GET BOOKINGS + AUTO-COMPLETAR (ESTRICTO) ---
+// --- 3. ADMIN: GET BOOKINGS ---
 exports.getBookings = async (req, res) => {
     try {
         const confirmedBookings = await Reservation.findAll({ where: { status: 'confirmed' } });
-        
-        // 1. OBTENEMOS HORA CHILE EXACTA EN FORMATO ESTÁNDAR
         const nowChileStr = getChileCurrentTime(); 
         
-        console.log(`🇨🇱 HORA CHILE SISTEMA: [${nowChileStr}]`);
-
         const updates = confirmedBookings.map(async (booking) => {
-            // 2. CONSTRUIMOS HORA FIN CITA CON EL MISMO FORMATO
-            // booking.date es "2025-11-27", booking.end_time es "21:00:00"
             const bookingEndStr = `${booking.date} ${booking.end_time}`;
-            
-            // console.log(`   🔎 Comparando: Actual[${nowChileStr}] vs FinCita[${bookingEndStr}]`);
-
-            // 3. COMPARACIÓN ALFABÉTICA (Funciona perfecto con YYYY-MM-DD)
             if (nowChileStr > bookingEndStr) {
-                console.log(`   ✅ Cita #${booking.id} vencida. Cerrando...`);
                 booking.status = 'completed';
                 return booking.save();
             }
         });
-        
         await Promise.all(updates);
 
         const bookings = await Reservation.findAll({
             include: [Service, Barber], 
-            order: [['date', 'ASC'], ['start_time', 'ASC']]
+            order: [['date', 'ASC'], ['start_time', 'ASC']] // Admin ve cronológico
         });
         res.json(bookings);
-
     } catch (error) {
-        console.error(error);
         res.status(500).json({ error: 'Error al obtener reservas' });
     }
 };
 
-// ... (updateBookingStatus, getClientBookings, cancelClientBooking igual que antes)
+// --- 4. ACTUALIZAR ESTADO ---
 exports.updateBookingStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
@@ -180,6 +160,7 @@ exports.updateBookingStatus = async (req, res) => {
     } catch (error) { res.status(500).json({ error: 'Error' }); }
 };
 
+// --- 5. CLIENTE: MIS RESERVAS (ORDEN POR CREACIÓN) ---
 exports.getClientBookings = async (req, res) => {
     const { phone } = req.query;
     if (!phone) return res.status(400).json({ error: 'Teléfono requerido' });
@@ -187,12 +168,14 @@ exports.getClientBookings = async (req, res) => {
         const bookings = await Reservation.findAll({
             where: { user_phone: phone },
             include: [Service, Barber], 
-            order: [['date', 'DESC'], ['start_time', 'ASC']]
+            // 👇 CAMBIO AQUÍ: Ordenar por createdAt DESC (Lo último creado sale primero)
+            order: [['createdAt', 'DESC']] 
         });
         res.json(bookings);
     } catch (error) { res.status(500).json({ error: 'Error' }); }
 };
 
+// --- 6. CANCELAR RESERVA CLIENTE ---
 exports.cancelClientBooking = async (req, res) => {
     const { id } = req.params;
     try {

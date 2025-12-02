@@ -17,7 +17,7 @@ const Layout = ({ children }) => {
 
     const isActive = (path) => location.pathname === path ? 'active fw-bold' : '';
 
-    // 1. Determinamos si hay imagen de fondo configurada
+    // Determinamos si hay imagen de fondo configurada para activar el efecto visual
     const hasBackground = !!config.backgroundImageUrl;
 
     return (
@@ -27,22 +27,23 @@ const Layout = ({ children }) => {
             {hasBackground && (
                 <div 
                     style={{
-                        position: 'fixed', // Fijo para efecto parallax
-                        top: -20, left: -20, right: -20, bottom: -20, // Un poco más grande para evitar bordes blancos al difuminar
-                        zIndex: 0, // Detrás de todo
+                        position: 'fixed',
+                        top: -20, left: -20, right: -20, bottom: -20, // Bordes extendidos para evitar halos blancos
+                        zIndex: 0,
                         backgroundImage: `url('${config.backgroundImageUrl}')`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
-                        filter: 'blur(8px) brightness(0.4)', // <--- AQUÍ ESTÁ LA MAGIA: Difuminado y Oscurecido
-                        transform: 'scale(1.05)' // Pequeño zoom para mejorar bordes difuminados
+                        filter: 'blur(8px) brightness(0.4)', // Efecto de desenfoque y oscurecimiento
+                        transform: 'scale(1.05)'
                     }}
                 ></div>
             )}
 
             {/* --- NAVBAR --- */}
-            {/* zIndex: 10 aseguramos que el navbar esté sobre el fondo */}
             <nav className="navbar navbar-expand-lg navbar-dark bg-primary sticky-top border-bottom border-dark" style={{ zIndex: 10 }}>
                 <div className="container">
+                    
+                    {/* LOGO O TEXTO DE LA MARCA */}
                     <Link className="navbar-brand d-flex align-items-center fw-bold" to="/" style={{ letterSpacing: '1px' }}>
                         {config.logoUrl ? (
                             <img 
@@ -67,12 +68,20 @@ const Layout = ({ children }) => {
                                 <Link className={`nav-link ${isActive('/')}`} to="/">Reservar</Link>
                             </li>
                             
-                            {/* Menú de Usuario */}
+                            {/* MENÚ DE USUARIO (SOLO SI ESTÁ LOGUEADO) */}
                             {user && (
                                 <li className="nav-item dropdown ms-lg-3">
-                                    <a className="nav-link dropdown-toggle btn btn-secondary text-white px-3 rounded-pill" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+                                    {/* CORRECCIÓN: Usamos button en lugar de <a> para evitar warnings de accesibilidad */}
+                                    <button 
+                                        className="nav-link dropdown-toggle btn btn-secondary text-white px-3 rounded-pill border-0" 
+                                        type="button"
+                                        data-bs-toggle="dropdown" 
+                                        aria-haspopup="true" 
+                                        aria-expanded="false"
+                                    >
                                         <FaUserCog className="me-2" /> {user.username}
-                                    </a>
+                                    </button>
+
                                     <div className="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
                                         {(user.role === 'admin' || user.role === 'developer') && (
                                             <>
@@ -99,12 +108,9 @@ const Layout = ({ children }) => {
             </nav>
 
             {/* --- CONTENIDO PRINCIPAL --- */}
-            {/* zIndex: 5 para que esté sobre el fondo borroso pero bajo el navbar */}
             <main className="flex-grow-1 d-flex align-items-center py-5 position-relative" style={{ zIndex: 5 }}>
                 <div className="container animate__animated animate__fadeIn">
-                    {/* Si hay fondo, usamos una tarjeta blanca semitransparente. 
-                       Si no hay fondo, el contenido queda limpio sobre el gris claro.
-                    */}
+                    {/* Tarjeta contenedora: Blanca y semitransparente si hay fondo, o transparente si no */}
                     <div className={`p-4 p-md-5 rounded-4 shadow-lg ${hasBackground ? 'bg-white bg-opacity-90' : ''}`}>
                         {children}
                     </div>
@@ -120,6 +126,8 @@ const Layout = ({ children }) => {
                     <p className="mb-0 small opacity-75">
                         &copy; {new Date().getFullYear()} <strong>{config.appName}</strong>. {config.footerText}
                     </p>
+
+                    {/* PUERTA TRASERA (LOGIN DISCRETO - Solo visible si no hay usuario) */}
                     {!user && (
                         <div className="position-absolute bottom-0 end-0 p-3">
                             <Link to="/login" className="text-secondary opacity-25 hover-opacity-100" title="Acceso Staff">

@@ -3,19 +3,20 @@ import api from '../config/api';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-// Importar los gestores de contenido (CMS)
+// --- IMPORTAR GESTORES DE CONTENIDO (CMS) ---
 import ServicesManager from './managers/ServicesManager';
 import BarbersManager from './managers/BarbersManager';
+import ConfigManager from './managers/ConfigManager'; // <--- Pestaña de Configuración
 
 const DevDashboard = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('stats'); // Estado para controlar la pestaña activa
+    const [activeTab, setActiveTab] = useState('stats'); // Control de pestañas
 
     const { user, logout } = useContext(AuthContext);
     const navigate = useNavigate();
 
-    // --- HELPER: Formatear Moneda (CLP) ---
+    // --- HELPER: Formatear Moneda (CLP sin decimales) ---
     const formatCLP = (value) => {
         const numberValue = Number(value);
         return new Intl.NumberFormat('es-CL', {
@@ -26,7 +27,7 @@ const DevDashboard = () => {
         }).format(numberValue);
     };
 
-    // Cargar datos financieros al inicio
+    // Cargar datos financieros al iniciar
     useEffect(() => {
         api.get('/api/finance/stats')
             .then(res => {
@@ -35,7 +36,6 @@ const DevDashboard = () => {
             })
             .catch(err => {
                 console.error(err);
-                // Si el usuario no es developer, lo echamos al admin normal
                 if (err.response?.status === 403) {
                     alert('Acceso restringido a Desarrolladores.');
                     navigate('/admin');
@@ -44,9 +44,9 @@ const DevDashboard = () => {
             });
     }, [navigate]);
 
-    // --- SUB-COMPONENTE: VISTA DE ESTADÍSTICAS ---
+    // --- VISTA DE ESTADÍSTICAS (Sub-componente) ---
     const StatsView = () => {
-        if (!data) return <div className="text-center text-danger">No hay datos disponibles.</div>;
+        if (!data) return <div className="text-center text-danger">No hay datos financieros disponibles.</div>;
         const { stats, details } = data;
 
         return (
@@ -101,9 +101,9 @@ const DevDashboard = () => {
                                 <tr>
                                     <th>ID</th>
                                     <th>Fecha</th>
-                                    <th>Hora</th> {/* Nueva Columna */}
-                                    <th>Cliente</th> {/* Nueva Columna */}
-                                    <th>Barbero</th> {/* Nueva Columna */}
+                                    <th>Hora</th>
+                                    <th>Cliente</th>
+                                    <th>Barbero</th>
                                     <th>Servicio</th>
                                     <th>Valor</th>
                                     <th className="text-end">Comisión</th>
@@ -115,13 +115,8 @@ const DevDashboard = () => {
                                         <td><span className="badge bg-secondary">#{item.id}</span></td>
                                         <td>{item.date}</td>
                                         <td className="fw-bold text-primary">{item.time ? item.time.slice(0, 5) : '--:--'}</td>
-                                        
-                                        {/* Datos del Cliente y Barbero */}
                                         <td className="fw-bold">{item.client}</td>
-                                        <td>
-                                            <span className="badge bg-info text-dark">{item.barber}</span>
-                                        </td>
-                                        
+                                        <td><span className="badge bg-info text-dark">{item.barber}</span></td>
                                         <td>{item.service}</td>
                                         <td>{formatCLP(item.price)}</td>
                                         <td className="text-end text-success fw-bold">+{formatCLP(item.commission)}</td>
@@ -132,7 +127,7 @@ const DevDashboard = () => {
                         {details.length === 0 && (
                             <div className="p-5 text-center text-muted">
                                 <h4>No hay citas completadas este mes 📉</h4>
-                                <p>Las comisiones aparecerán aquí cuando los barberos finalicen citas.</p>
+                                <p>Las comisiones aparecerán aquí cuando se finalicen citas.</p>
                             </div>
                         )}
                     </div>
@@ -168,7 +163,7 @@ const DevDashboard = () => {
                         className={`nav-link ${activeTab === 'stats' ? 'active fw-bold bg-primary text-white' : 'text-muted'}`} 
                         onClick={() => setActiveTab('stats')}
                     >
-                        📊 Finanzas & Métricas
+                        📊 Finanzas
                     </button>
                 </li>
                 <li className="nav-item">
@@ -176,7 +171,7 @@ const DevDashboard = () => {
                         className={`nav-link ${activeTab === 'services' ? 'active fw-bold bg-primary text-white' : 'text-muted'}`} 
                         onClick={() => setActiveTab('services')}
                     >
-                        ✂️ Gestión de Servicios
+                        ✂️ Servicios
                     </button>
                 </li>
                 <li className="nav-item">
@@ -184,7 +179,15 @@ const DevDashboard = () => {
                         className={`nav-link ${activeTab === 'barbers' ? 'active fw-bold bg-primary text-white' : 'text-muted'}`} 
                         onClick={() => setActiveTab('barbers')}
                     >
-                        💈 Gestión de Barberos
+                        💈 Barberos
+                    </button>
+                </li>
+                <li className="nav-item">
+                    <button 
+                        className={`nav-link ${activeTab === 'config' ? 'active fw-bold bg-info text-white' : 'text-muted'}`} 
+                        onClick={() => setActiveTab('config')}
+                    >
+                        ⚙️ Configuración
                     </button>
                 </li>
             </ul>
@@ -194,6 +197,7 @@ const DevDashboard = () => {
                 {activeTab === 'stats' && <StatsView />}
                 {activeTab === 'services' && <ServicesManager />}
                 {activeTab === 'barbers' && <BarbersManager />}
+                {activeTab === 'config' && <ConfigManager />}
             </div>
         </div>
     );

@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ConfigContext } from '../context/ConfigContext'; // Importar Contexto Global
+
+// Importar sub-componentes del flujo
 import ServiceSelector from './ServiceSelector';
 import BarberSelector from './BarberSelector';
 import DateTimeSelector from './DateTimeSelector';
@@ -13,7 +16,9 @@ const BookingInterface = () => {
     const [selectedTime, setSelectedTime] = useState(null);
     const [isSuccess, setIsSuccess] = useState(false);
 
+    // Hooks
     const navigate = useNavigate();
+    const { config } = useContext(ConfigContext); // Usar configuración dinámica (Nombre, WhatsApp)
 
     // --- FUNCIÓN DE REINICIO ---
     const handleReset = () => {
@@ -28,11 +33,11 @@ const BookingInterface = () => {
     const sendWhatsAppConfirmation = () => {
         if (!selectedBarber || !selectedDate || !selectedTime || !selectedService) return;
 
-        // ⚠️ REEMPLAZA CON TU NÚMERO REAL
-        const businessPhone = "56912345678"; 
+        // Usar número de la base de datos (o uno por defecto si falla)
+        const businessPhone = config.whatsappNumber || "56900000000"; 
 
         const message = 
-`Hola *Barbería del Futuro* 💈, acabo de agendar mi hora:%0A
+`Hola *${config.appName}* 💈, acabo de agendar mi hora:%0A
 ✂️ *Servicio:* ${selectedService.name}%0A
 👤 *Barbero:* ${selectedBarber.name}%0A
 📅 *Fecha:* ${selectedDate}%0A
@@ -45,19 +50,24 @@ Quiero confirmar que está todo listo. ¡Gracias!`;
 
     return (
         <div className="container mt-5" style={{ maxWidth: '800px' }}>
-            {/* ENCABEZADO: Único lugar con el botón "Mis Citas" */}
+            
+            {/* ENCABEZADO PRINCIPAL */}
             <div className="d-flex justify-content-between align-items-center mb-5">
-                <h1 className="text-center m-0 fw-bold">💈 Barbería del Futuro 💈</h1>
+                {/* Nombre dinámico desde la base de datos */}
+                <h1 className="text-center m-0 fw-bold text-uppercase" style={{ letterSpacing: '2px' }}>
+                    {config.appName} <span className="text-primary">💈</span>
+                </h1>
                 
+                {/* ÚNICO BOTÓN DE NAVEGACIÓN A MIS CITAS */}
                 <button 
-                    className="btn btn-outline-dark" 
+                    className="btn btn-outline-dark rounded-pill px-3" 
                     onClick={() => navigate('/my-bookings')}
                 >
                     📅 Mis Citas
                 </button>
             </div>
 
-            {/* --- PANTALLA DE ÉXITO --- */}
+            {/* --- PANTALLA DE ÉXITO (Reserva Confirmada) --- */}
             {isSuccess ? (
                 <div className="card text-center p-5 shadow border-0 animate__animated animate__bounceIn">
                     <div className="card-body">
@@ -70,18 +80,17 @@ Quiero confirmar que está todo listo. ¡Gracias!`;
                             Te atenderá: <strong>{selectedBarber?.name}</strong>
                         </p>
                         
-                        {/* BOTÓN DE WHATSAPP */}
-                        <div className="alert alert-info border-0 mt-4 mb-4 bg-light">
+                        <div className="alert alert-info border-0 mt-4 mb-4 bg-light rounded-3">
                             <small className="text-muted d-block mb-2">
                                 Hemos enviado un correo con los detalles. <br/>
                                 Para una confirmación inmediata, envíanos un WhatsApp:
                             </small>
                             <button 
                                 onClick={sendWhatsAppConfirmation}
-                                className="btn btn-success btn-lg w-100 py-3 fw-bold shadow-sm mt-2"
+                                className="btn btn-success btn-lg w-100 py-3 fw-bold shadow-sm mt-2 rounded-pill"
                                 style={{ backgroundColor: '#25D366', borderColor: '#25D366' }}
                             >
-                                <i className="bi bi-whatsapp me-2"></i> Confirmar por WhatsApp
+                                <i className="bi bi-whatsapp me-2"></i> Enviar WhatsApp
                             </button>
                         </div>
 
@@ -93,8 +102,8 @@ Quiero confirmar que está todo listo. ¡Gracias!`;
                     </div>
                 </div>
             ) : (
-                /* --- FLUJO DE SELECCIÓN --- */
-                <div className="card shadow-lg border-0 p-4">
+                /* --- FLUJO DE SELECCIÓN (Pasos 1-4) --- */
+                <div className="card shadow-lg border-0 p-4 rounded-4">
                     
                     {/* PASO 1: SERVICIO */}
                     {!selectedService && (
@@ -112,7 +121,8 @@ Quiero confirmar que está todo listo. ¡Gracias!`;
                     {/* PASO 3: FECHA Y HORA */}
                     {selectedService && selectedBarber && !selectedTime && (
                         <>
-                            <div className="text-center mb-3 p-2 bg-light rounded d-flex justify-content-center align-items-center gap-2">
+                            {/* Resumen de selección */}
+                            <div className="text-center mb-3 p-2 bg-light rounded-pill d-inline-flex justify-content-center align-items-center gap-2 mx-auto w-100">
                                 <span className="badge bg-dark">{selectedService.name}</span>
                                 <span className="text-muted small">+</span>
                                 <span className="badge bg-warning text-dark">{selectedBarber.name}</span>
@@ -127,7 +137,6 @@ Quiero confirmar que está todo listo. ¡Gracias!`;
                             <DateTimeSelector
                                 barberId={selectedBarber.id} 
                                 serviceId={selectedService.id}
-                                // 👇 Pasamos la duración para que el calendario filtre visualmente los slots
                                 serviceDuration={selectedService.duration_minutes}
                                 onSelectDateTime={(date, time) => {
                                     setSelectedDate(date);
@@ -137,7 +146,7 @@ Quiero confirmar que está todo listo. ¡Gracias!`;
                         </>
                     )}
 
-                    {/* PASO 4: FORMULARIO */}
+                    {/* PASO 4: FORMULARIO FINAL */}
                     {selectedService && selectedBarber && selectedTime && (
                         <ReservationForm
                             service={selectedService}
@@ -154,4 +163,4 @@ Quiero confirmar que está todo listo. ¡Gracias!`;
     );
 };
 
-export default BookingInterface;
+export default BookingInterface;    

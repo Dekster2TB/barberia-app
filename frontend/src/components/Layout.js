@@ -35,7 +35,7 @@ const Layout = ({ children }) => {
                             <img 
                                 src={config.logoUrl} 
                                 alt={config.appName} 
-                                style={{ maxHeight: '70px', objectFit: 'contain' }} 
+                                style={{ maxHeight: '100px', objectFit: 'contain' }} 
                             />
                         ) : (
                             <>

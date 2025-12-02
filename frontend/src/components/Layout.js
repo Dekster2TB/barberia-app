@@ -25,6 +25,19 @@ const Layout = ({ children }) => {
     const isActive = (path) => location.pathname === path ? 'active fw-bold' : '';
     const hasBackground = !!config.backgroundImageUrl;
 
+    // --- NUEVO ESTILO "GLASSMORPHISM" (Vidrio Esmerilado) ---
+    const glassStyle = hasBackground ? {
+        // Tono blanco muy sutil (0.15 de opacidad)
+        backgroundColor: 'rgba(255, 255, 255, 0.15)', 
+        // Difuminado potente del fondo
+        backdropFilter: 'blur(12px)', 
+        // Soporte para Safari/iOS
+        WebkitBackdropFilter: 'blur(12px)',
+        // Un borde blanco casi invisible para definir los límites
+        border: '1px solid rgba(255, 255, 255, 0.2)' 
+    } : {};
+    // -------------------------------------------------------
+
     return (
         <div className="d-flex flex-column min-vh-100 position-relative overflow-hidden" style={{ backgroundColor: '#f0f2f5' }}>
             
@@ -35,7 +48,8 @@ const Layout = ({ children }) => {
                         position: 'fixed', top: -20, left: -20, right: -20, bottom: -20, zIndex: 0,
                         backgroundImage: `url('${config.backgroundImageUrl}')`,
                         backgroundSize: 'cover', backgroundPosition: 'center',
-                        filter: 'blur(8px) brightness(0.4)', transform: 'scale(1.05)'
+                        // Quitamos el filtro oscuro de aquí, ya que el cuadro blanco hará el contraste
+                        transform: 'scale(1.05)'
                     }}
                 ></div>
             )}
@@ -102,7 +116,14 @@ const Layout = ({ children }) => {
 
             <main className="flex-grow-1 d-flex align-items-center py-5 position-relative" style={{ zIndex: 5 }}>
                 <div className="container animate__animated animate__fadeIn">
-                    <div className={`p-4 p-md-5 rounded-4 shadow-lg ${hasBackground ? 'bg-white bg-opacity-90' : ''}`}>
+                    {/* AQUÍ ESTÁ EL CAMBIO PRINCIPAL:
+                       1. Quitamos las clases 'bg-white bg-opacity-90' si hay fondo.
+                       2. Agregamos el estilo 'glassStyle'.
+                    */}
+                    <div 
+                        className={`p-4 p-md-5 rounded-4 shadow-lg ${!hasBackground ? 'bg-white' : ''}`}
+                        style={glassStyle}
+                    >
                         {children}
                     </div>
                 </div>
@@ -110,19 +131,13 @@ const Layout = ({ children }) => {
 
             {/* --- FOOTER OPTIMIZADO PARA MÓVIL --- */}
             <footer className="bg-dark text-white text-center py-4 mt-auto border-top border-secondary" style={{ zIndex: 10 }}>
-                {/* 1. Agregamos 'position-relative' AQUÍ (al container) en lugar de al footer general */}
                 <div className="container position-relative">
-                    
                     <div className="mb-2"><FaCut className="text-muted fs-4" /></div>
                     <p className="mb-0 small opacity-75">&copy; {new Date().getFullYear()} <strong>{config.appName}</strong>. {config.footerText}</p>
 
-                    {/* 2. LOGO DISCRETO REUBICADO */}
                     {!user && (
-                        // Cambiamos 'bottom-0' por 'top-50 translate-middle-y' para centrarlo verticalmente
-                        // Esto evita que la barra del navegador del celular lo tape.
                         <div className="position-absolute top-50 end-0 translate-middle-y p-2">
                             <Link to="/login" className="text-secondary opacity-50 hover-opacity-100" title="Acceso Staff">
-                                {/* Aumentamos ligeramente el tamaño para dedos (12 -> 14) */}
                                 <FaLock size={14} />
                             </Link>
                         </div>

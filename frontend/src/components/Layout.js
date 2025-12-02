@@ -6,10 +6,7 @@ import { FaCut, FaUserCog, FaSignOutAlt, FaCalendarCheck, FaLock } from 'react-i
 
 const Layout = ({ children }) => {
     const { user, logout } = useContext(AuthContext);
-    
-    // Obtenemos la configuración (Nombre, Logo, Textos)
     const { config } = useContext(ConfigContext); 
-
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -20,23 +17,27 @@ const Layout = ({ children }) => {
 
     const isActive = (path) => location.pathname === path ? 'active fw-bold' : '';
 
+    // --- URL DE LA IMAGEN DE FONDO ---
+    // Puedes cambiar esta URL por una que subas a Cloudinary si prefieres.
+    const backgroundImageURL = "https://images.unsplash.com/photo-1503951914290-9b0147215270?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3";
+
     return (
         <div className="d-flex flex-column min-vh-100">
             {/* --- NAVBAR --- */}
-            <nav className="navbar navbar-expand-lg navbar-dark bg-primary shadow-lg sticky-top">
+            {/* Le quitamos la sombra (shadow-lg) para que se fusione mejor con el fondo */}
+            <nav className="navbar navbar-expand-lg navbar-dark bg-primary sticky-top border-bottom border-dark">
                 <div className="container">
                     
-                    {/* LOGICA DEL BRAND: ¿Logo o Texto? */}
                     <Link className="navbar-brand d-flex align-items-center fw-bold" to="/" style={{ letterSpacing: '1px' }}>
                         {config.logoUrl ? (
-                            // Si existe URL del logo, mostramos la IMAGEN
+                            // 1. CAMBIO: Agrandamos el logo
+                            // Subimos maxHeight de 45px a 70px (ajústalo si es mucho o poco)
                             <img 
                                 src={config.logoUrl} 
                                 alt={config.appName} 
-                                style={{ maxHeight: '45px', objectFit: 'contain' }} 
+                                style={{ maxHeight: '70px', objectFit: 'contain' }} 
                             />
                         ) : (
-                            // Si NO existe logo, mostramos el TEXTO por defecto
                             <>
                                 <FaCut className="me-2 text-warning" /> {config.appName || 'Cargando...'}
                             </>
@@ -49,18 +50,10 @@ const Layout = ({ children }) => {
 
                     <div className="collapse navbar-collapse" id="navbarColor01">
                         <ul className="navbar-nav ms-auto align-items-center">
-                            
                             <li className="nav-item">
                                 <Link className={`nav-link ${isActive('/')}`} to="/">Reservar</Link>
                             </li>
                             
-                            {/* NOTA: El enlace "Mis Citas" se ocultó aquí para no duplicarlo con el botón grande del inicio.
-                                Si alguna vez lo quieres recuperar, descomenta esto:
-                            <li className="nav-item">
-                                <Link className={`nav-link ${isActive('/my-bookings')}`} to="/my-bookings">Mis Citas</Link>
-                            </li> 
-                            */}
-
                             {/* --- MENÚ DE USUARIO LOGUEADO --- */}
                             {user && (
                                 <li className="nav-item dropdown ms-lg-3">
@@ -92,28 +85,35 @@ const Layout = ({ children }) => {
                 </div>
             </nav>
 
-            {/* --- CONTENIDO PRINCIPAL --- */}
-            <main className="flex-grow-1" style={{ backgroundColor: '#f7f7f7' }}>
-                <div className="container py-5 animate__animated animate__fadeIn">
-                    {children}
+            {/* --- CONTENIDO PRINCIPAL CON FONDO --- */}
+            {/* 2. CAMBIO: Agregamos la imagen de fondo con una capa oscura superpuesta */}
+            <main className="flex-grow-1 d-flex align-items-center py-5" style={{ 
+                // El truco del degradado: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)) crea una capa negra al 60% de opacidad sobre la imagen.
+                backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('${backgroundImageURL}')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundAttachment: 'fixed' // Efecto parallax al hacer scroll
+            }}>
+                <div className="container animate__animated animate__fadeIn">
+                    {/* Envolvemos el contenido en una "tarjeta" blanca para que resalte del fondo oscuro */}
+                    <div className="bg-white p-4 p-md-5 rounded-4 shadow-lg" style={{backgroundColor: 'rgba(255, 255, 255, 0.95)'}}>
+                        {children}
+                    </div>
                 </div>
             </main>
 
             {/* --- FOOTER --- */}
-            <footer className="bg-dark text-white text-center py-4 mt-auto position-relative">
+            <footer className="bg-dark text-white text-center py-4 mt-auto position-relative border-top border-secondary">
                 <div className="container">
                     <div className="mb-2">
-                        {/* Aquí seguimos usando el ícono pequeño como decoración */}
                         <FaCut className="text-muted fs-4" />
                     </div>
                     
-                    {/* Texto del pie de página (Siempre usa el nombre en texto, no el logo) */}
                     <p className="mb-0 small opacity-75">
                         &copy; {new Date().getFullYear()} <strong>{config.appName}</strong>. {config.footerText}
                     </p>
 
                     {/* --- PUERTA TRASERA (LOGIN DISCRETO) --- */}
-                    {/* Solo visible si NO hay nadie logueado */}
                     {!user && (
                         <div className="position-absolute bottom-0 end-0 p-3">
                             <Link to="/login" className="text-secondary opacity-25 hover-opacity-100" title="Acceso Staff">

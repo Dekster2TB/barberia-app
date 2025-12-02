@@ -37,7 +37,7 @@ const ServiceSelector = ({ onSelectService }) => {
 
     return (
         <div className="text-center animate__animated animate__fadeIn">
-            <h3 className="mb-4">1. Elige tu Servicio</h3>
+            {/* Se eliminó el título h3 de aquí */}
             
             {services.length === 0 ? (
                 <p className="text-muted">No hay servicios disponibles en este momento.</p>
@@ -61,7 +61,7 @@ const ServiceSelector = ({ onSelectService }) => {
                                         style={{height: '200px', objectFit: 'cover'}} 
                                     />
                                 ) : (
-                                    // Placeholder si no hay imagen (opcional, puedes quitarlo si prefieres solo texto)
+                                    // Placeholder si no hay imagen (opcional)
                                     <div className="d-none"></div> 
                                 )}
 

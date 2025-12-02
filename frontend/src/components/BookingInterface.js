@@ -35,18 +35,19 @@ const BookingInterface = () => {
     return (
         <div className="container mt-2" style={{ maxWidth: '800px' }}>
             
-            {/* --- ENCABEZADO SIMPLIFICADO --- */}
-            {/* Solo mostramos el título centrado. Eliminamos el botón y el flex-row complejo */}
+            {/* --- ENCABEZADO --- */}
             <div className="text-center mb-5">
-                <h1 className="fw-bold text-uppercase fs-2 fs-md-1" style={{ letterSpacing: '2px' }}>
+                {/* TÍTULO PRINCIPAL: Se mantiene en BLANCO (text-white) para resaltar sobre el fondo oscuro */}
+                <h1 className="fw-bold text-uppercase fs-2 fs-md-1 text-white" style={{ letterSpacing: '2px', textShadow: '0px 2px 4px rgba(0,0,0,0.5)' }}>
                     {config.welcomeTitle || 'Reserva tu Cita'} 
                     <span className="text-primary ms-2">💈</span>
                 </h1>
             </div>
 
-            {/* --- RESTO DEL CONTENIDO IGUAL --- */}
+            {/* --- CONTENIDO PRINCIPAL --- */}
             {isSuccess ? (
-                <div className="card text-center p-4 p-md-5 shadow border-0 animate__animated animate__bounceIn bg-white bg-opacity-90">
+                // Tarjeta de éxito BLANCA
+                <div className="card text-center p-4 p-md-5 shadow border-0 animate__animated animate__bounceIn bg-white">
                     <div className="card-body">
                         <div className="mb-4"><span style={{ fontSize: '4rem' }}>🎉</span></div>
                         <h2 className="card-title text-success fw-bold mb-3">¡Reserva Confirmada!</h2>
@@ -66,25 +67,39 @@ const BookingInterface = () => {
                     </div>
                 </div>
             ) : (
+                // Tarjeta del formulario BLANCA SÓLIDA (bg-white)
                 <div className="card shadow-lg border-0 p-3 p-md-5 rounded-4 bg-white">
+                    
                     {/* PASO 1 */}
                     {!selectedService && (
                         <div className="animate__animated animate__fadeIn">
-                            <h5 className="text-center text-secondary mb-4 text-uppercase fw-bold" style={{ letterSpacing: '1px', fontSize: '0.9rem' }}>1. Selecciona un Servicio</h5>
+                            {/* Subtítulo GRIS OSCURO (text-secondary) para que se lea sobre el blanco */}
+                            <h5 className="text-center text-secondary mb-4 text-uppercase fw-bold" style={{ letterSpacing: '1px', fontSize: '0.9rem' }}>
+                                1. SELECCIONA TU SERVICIO
+                            </h5>
                             <ServiceSelector onSelectService={setSelectedService} />
                         </div>
                     )}
+
                     {/* PASO 2 */}
                     {selectedService && !selectedBarber && (
                         <div className="animate__animated animate__fadeInRight">
-                            <h5 className="text-center text-secondary mb-4 text-uppercase fw-bold" style={{ letterSpacing: '1px', fontSize: '0.9rem' }}>2. Selecciona un Barbero</h5>
+                            {/* Subtítulo GRIS OSCURO */}
+                            <h5 className="text-center text-secondary mb-4 text-uppercase fw-bold" style={{ letterSpacing: '1px', fontSize: '0.9rem' }}>
+                                2. SELECCIONA TU BARBERO
+                            </h5>
                             <BarberSelector onSelectBarber={setSelectedBarber} onBack={() => setSelectedService(null)} />
                         </div>
                     )}
+
                     {/* PASO 3 */}
                     {selectedService && selectedBarber && !selectedTime && (
                         <div className="animate__animated animate__fadeInRight">
-                             <h5 className="text-center text-secondary mb-4 text-uppercase fw-bold" style={{ letterSpacing: '1px', fontSize: '0.9rem' }}>3. Fecha y Hora</h5>
+                             {/* Subtítulo GRIS OSCURO */}
+                             <h5 className="text-center text-secondary mb-4 text-uppercase fw-bold" style={{ letterSpacing: '1px', fontSize: '0.9rem' }}>
+                                3. FECHA Y HORA
+                            </h5>
+                            {/* Resumen con fondo claro */}
                             <div className="d-flex justify-content-center align-items-center gap-2 mb-4 p-2 bg-light rounded-3 border">
                                 <small className="fw-bold">{selectedService.name}</small> <span className="text-muted">/</span>
                                 <small className="fw-bold text-primary">{selectedBarber.name}</small>
@@ -93,10 +108,14 @@ const BookingInterface = () => {
                             <DateTimeSelector barberId={selectedBarber.id} serviceId={selectedService.id} serviceDuration={selectedService.duration_minutes} onSelectDateTime={(date, time) => { setSelectedDate(date); setSelectedTime(time); }} />
                         </div>
                     )}
+
                     {/* PASO 4 */}
                     {selectedService && selectedBarber && selectedTime && (
                         <div className="animate__animated animate__fadeInUp">
-                            <h5 className="text-center text-secondary mb-4 text-uppercase fw-bold" style={{ letterSpacing: '1px', fontSize: '0.9rem' }}>4. Confirma tus Datos</h5>
+                            {/* Subtítulo GRIS OSCURO */}
+                            <h5 className="text-center text-secondary mb-4 text-uppercase fw-bold" style={{ letterSpacing: '1px', fontSize: '0.9rem' }}>
+                                4. CONFIRMA TUS DATOS
+                            </h5>
                             <ReservationForm service={selectedService} barber={selectedBarber} date={selectedDate} time={selectedTime} onSuccess={() => setIsSuccess(true)} onBack={() => setSelectedTime(null)} />
                         </div>
                     )}

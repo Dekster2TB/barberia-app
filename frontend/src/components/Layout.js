@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { ConfigContext } from '../context/ConfigContext';
@@ -10,14 +10,19 @@ const Layout = ({ children }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
+    // Estado para el menú móvil
+    const [isNavOpen, setIsNavOpen] = useState(false);
+
+    const toggleNav = () => setIsNavOpen(!isNavOpen);
+    const closeNav = () => setIsNavOpen(false);
+
     const handleLogout = () => {
         logout();
+        closeNav();
         navigate('/login');
     };
 
-    // Función para resaltar el link activo
     const isActive = (path) => location.pathname === path ? 'active fw-bold' : '';
-
     const hasBackground = !!config.backgroundImageUrl;
 
     return (
@@ -38,8 +43,7 @@ const Layout = ({ children }) => {
             {/* NAVBAR */}
             <nav className="navbar navbar-expand-lg navbar-dark bg-primary sticky-top border-bottom border-dark" style={{ zIndex: 10 }}>
                 <div className="container">
-                    
-                    <Link className="navbar-brand d-flex align-items-center fw-bold" to="/" style={{ letterSpacing: '1px' }}>
+                    <Link className="navbar-brand d-flex align-items-center fw-bold" to="/" onClick={closeNav} style={{ letterSpacing: '1px' }}>
                         {config.logoUrl ? (
                             <img src={config.logoUrl} alt={config.appName} style={{ maxHeight: '75px', objectFit: 'contain' }} />
                         ) : (
@@ -47,24 +51,22 @@ const Layout = ({ children }) => {
                         )}
                     </Link>
                     
-                    <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor01" aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation">
+                    <button 
+                        className="navbar-toggler" type="button" onClick={toggleNav} 
+                        aria-expanded={isNavOpen} aria-label="Toggle navigation"
+                    >
                         <span className="navbar-toggler-icon"></span>
                     </button>
 
-                    <div className="collapse navbar-collapse" id="navbarColor01">
+                    <div className={`collapse navbar-collapse ${isNavOpen ? 'show' : ''}`} id="navbarColor01">
                         <ul className="navbar-nav ms-auto align-items-center">
-                            
-                            {/* 1. LINK RESERVAR */}
                             <li className="nav-item">
-                                <Link className={`nav-link ${isActive('/')}`} to="/">RESERVAR</Link>
+                                <Link className={`nav-link ${isActive('/')}`} to="/" onClick={closeNav}>RESERVAR</Link>
                             </li>
-
-                            {/* 2. NUEVO LINK: MIS CITAS (Estilo idéntico al de arriba) */}
                             <li className="nav-item">
-                                <Link className={`nav-link ${isActive('/my-bookings')}`} to="/my-bookings">MIS CITAS</Link>
+                                <Link className={`nav-link ${isActive('/my-bookings')}`} to="/my-bookings" onClick={closeNav}>MIS CITAS</Link>
                             </li>
                             
-                            {/* MENÚ DE USUARIO */}
                             {user && (
                                 <li className="nav-item dropdown ms-lg-3">
                                     <button 
@@ -73,15 +75,14 @@ const Layout = ({ children }) => {
                                     >
                                         <FaUserCog className="me-2" /> {user.username}
                                     </button>
-
                                     <div className="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
                                         {(user.role === 'admin' || user.role === 'developer') && (
                                             <>
-                                                <Link className="dropdown-item d-flex align-items-center" to="/admin">
+                                                <Link className="dropdown-item d-flex align-items-center" to="/admin" onClick={closeNav}>
                                                     <FaCalendarCheck className="me-2 text-info" /> Gestión de Citas
                                                 </Link>
                                                 {user.role === 'developer' && (
-                                                    <Link className="dropdown-item d-flex align-items-center" to="/dev-dashboard">
+                                                    <Link className="dropdown-item d-flex align-items-center" to="/dev-dashboard" onClick={closeNav}>
                                                         <FaUserCog className="me-2 text-success" /> Panel Maestro
                                                     </Link>
                                                 )}
@@ -107,13 +108,23 @@ const Layout = ({ children }) => {
                 </div>
             </main>
 
-            <footer className="bg-dark text-white text-center py-4 mt-auto position-relative border-top border-secondary" style={{ zIndex: 10 }}>
-                <div className="container">
+            {/* --- FOOTER OPTIMIZADO PARA MÓVIL --- */}
+            <footer className="bg-dark text-white text-center py-4 mt-auto border-top border-secondary" style={{ zIndex: 10 }}>
+                {/* 1. Agregamos 'position-relative' AQUÍ (al container) en lugar de al footer general */}
+                <div className="container position-relative">
+                    
                     <div className="mb-2"><FaCut className="text-muted fs-4" /></div>
                     <p className="mb-0 small opacity-75">&copy; {new Date().getFullYear()} <strong>{config.appName}</strong>. {config.footerText}</p>
+
+                    {/* 2. LOGO DISCRETO REUBICADO */}
                     {!user && (
-                        <div className="position-absolute bottom-0 end-0 p-3">
-                            <Link to="/login" className="text-secondary opacity-25 hover-opacity-100" title="Acceso Staff"><FaLock size={12} /></Link>
+                        // Cambiamos 'bottom-0' por 'top-50 translate-middle-y' para centrarlo verticalmente
+                        // Esto evita que la barra del navegador del celular lo tape.
+                        <div className="position-absolute top-50 end-0 translate-middle-y p-2">
+                            <Link to="/login" className="text-secondary opacity-50 hover-opacity-100" title="Acceso Staff">
+                                {/* Aumentamos ligeramente el tamaño para dedos (12 -> 14) */}
+                                <FaLock size={14} />
+                            </Link>
                         </div>
                     )}
                 </div>

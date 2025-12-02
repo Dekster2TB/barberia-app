@@ -7,25 +7,28 @@ import axios from 'axios';
 const ConfigManager = () => {
     const { config, fetchConfig } = useContext(ConfigContext);
     
+    // Estado del formulario incluyendo el nuevo campo welcomeTitle
     const [formData, setFormData] = useState({
         appName: '',
+        welcomeTitle: '', // <--- NUEVO CAMPO
         footerText: '',
         whatsappNumber: '',
         logoUrl: '',
-        backgroundImageUrl: '' // Nuevo estado para el fondo
+        backgroundImageUrl: ''
     });
 
-    // Estados para los archivos seleccionados
+    // Estados para los archivos seleccionados (Imágenes)
     const [logoFile, setLogoFile] = useState(null);
-    const [backgroundFile, setBackgroundFile] = useState(null); // Nuevo estado archivo fondo
+    const [backgroundFile, setBackgroundFile] = useState(null);
     
     const [loading, setLoading] = useState(false);
 
-    // Cargar datos iniciales
+    // Cargar datos iniciales desde el contexto
     useEffect(() => {
         if (config) {
             setFormData({
                 appName: config.appName || '',
+                welcomeTitle: config.welcomeTitle || '', // <--- CARGAR DATO
                 footerText: config.footerText || '',
                 whatsappNumber: config.whatsappNumber || '',
                 logoUrl: config.logoUrl || '',
@@ -34,12 +37,13 @@ const ConfigManager = () => {
         }
     }, [config]);
 
-    // --- FUNCIÓN REUTILIZABLE PARA SUBIR A CLOUDINARY ---
+    // --- FUNCIÓN PARA SUBIR A CLOUDINARY ---
     const uploadImageToCloudinary = async (file) => {
         if (!file) return null;
         const data = new FormData();
         data.append("file", file);
-        // REEMPLAZA CON TUS DATOS REALES DE CLOUDINARY:
+        
+        // ⚠️ REEMPLAZA CON TUS DATOS REALES DE CLOUDINARY:
         data.append("upload_preset", "Barberia_preset"); 
         data.append("cloud_name", "dm9nfa8ot");
 
@@ -59,13 +63,14 @@ const ConfigManager = () => {
     const handleRemoveImage = (type) => {
         if (type === 'logo') {
             setLogoFile(null);
-            setFormData({ ...formData, logoUrl: null }); // Marcar para borrar en backend
+            setFormData({ ...formData, logoUrl: null }); // Marcar null para borrar en DB
         } else if (type === 'background') {
             setBackgroundFile(null);
-            setFormData({ ...formData, backgroundImageUrl: null }); // Marcar para borrar en backend
+            setFormData({ ...formData, backgroundImageUrl: null }); // Marcar null para borrar en DB
         }
     };
 
+    // --- GUARDAR CAMBIOS ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -83,15 +88,17 @@ const ConfigManager = () => {
                 newBackgroundUrl = await uploadImageToCloudinary(backgroundFile);
             }
 
-            // 2. Enviar todo al backend
+            // 2. Enviar todo al backend (incluyendo welcomeTitle)
             await api.put('/api/config', {
                 ...formData,
                 logoUrl: newLogoUrl,
                 backgroundImageUrl: newBackgroundUrl
             });
             
-            // 3. Recargar contexto y limpiar formularios
+            // 3. Recargar contexto global
             await fetchConfig(); 
+            
+            // Limpiar inputs de archivo
             setLogoFile(null);
             setBackgroundFile(null);
             
@@ -106,7 +113,7 @@ const ConfigManager = () => {
         }
     };
 
-    // Helper para previsualizar imagen (archivo local o URL existente)
+    // Helper visual para previsualizar imagen
     const getPreview = (file, url) => {
         if (file) return URL.createObjectURL(file);
         if (url) return url;
@@ -122,8 +129,9 @@ const ConfigManager = () => {
                 <div className="card-body p-4">
                     <form onSubmit={handleSubmit}>
                         
+                        {/* --- SECCIÓN IMÁGENES --- */}
                         <div className="row mb-4">
-                            {/* --- SECCIÓN LOGO --- */}
+                            {/* Logo */}
                             <div className="col-md-6 mb-3 mb-md-0">
                                 <div className="border p-3 rounded bg-light text-center h-100">
                                     <label className="form-label fw-bold d-block mb-3">Logo (Navbar)</label>
@@ -139,11 +147,10 @@ const ConfigManager = () => {
                                 </div>
                             </div>
 
-                            {/* --- NUEVA SECCIÓN: IMAGEN DE FONDO --- */}
+                            {/* Fondo */}
                             <div className="col-md-6">
                                 <div className="border p-3 rounded bg-light text-center h-100">
                                     <label className="form-label fw-bold d-block mb-3">Imagen de Fondo (Página Principal)</label>
-                                    {/* Previsualización tipo "cover" para el fondo */}
                                     <div className="mb-3 d-flex justify-content-center align-items-center" 
                                          style={{ 
                                              height: '80px', 
@@ -166,10 +173,30 @@ const ConfigManager = () => {
                         
                         <hr className="my-4"/>
 
-                        {/* Inputs de Texto Normales */}
+                        {/* --- SECCIÓN TEXTOS --- */}
+
+                        {/* 1. Nombre de la Marca (Navbar y Footer) */}
                         <div className="mb-3">
-                            <label className="form-label fw-bold">Nombre de la Marca</label>
-                            <input className="form-control" value={formData.appName} onChange={e => setFormData({...formData, appName: e.target.value})} placeholder="Ej: PARCES BARBERSHOP" />
+                            <label className="form-label fw-bold">Nombre de la Barbería (Marca)</label>
+                            <input 
+                                className="form-control" 
+                                value={formData.appName} 
+                                onChange={e => setFormData({...formData, appName: e.target.value})} 
+                                placeholder="Ej: Parce's Barbershop"
+                            />
+                            <div className="form-text">Aparece en la barra de navegación (si no hay logo) y en el pie de página.</div>
+                        </div>
+
+                        {/* 2. Título Central (Separado) */}
+                        <div className="mb-3 p-3 bg-light border rounded">
+                            <label className="form-label fw-bold text-primary">Título de Bienvenida (Centro de la página)</label>
+                            <input 
+                                className="form-control fw-bold" 
+                                value={formData.welcomeTitle} 
+                                onChange={e => setFormData({...formData, welcomeTitle: e.target.value})} 
+                                placeholder="Ej: COMIENZA A AGENDAR"
+                            />
+                            <div className="form-text">Este es el título grande que aparece en el centro, independiente de la marca.</div>
                         </div>
 
                         <div className="row">
@@ -179,12 +206,12 @@ const ConfigManager = () => {
                             </div>
                             <div className="col-md-6 mb-3">
                                 <label className="form-label fw-bold">Texto Pie de Página</label>
-                                <input className="form-control" value={formData.footerText} onChange={e => setFormData({...formData, footerText: e.target.value})} />
+                                <input className="form-control" value={formData.footerText} onChange={e => setFormData({...formData, footerText: e.target.value})} placeholder="Frase final del sitio" />
                             </div>
                         </div>
 
                         <button className="btn btn-info text-white w-100 py-2 fw-bold shadow-sm mt-3" disabled={loading}>
-                            {loading ? 'Guardando Cambios...' : 'GUARDAR TODA LA CONFIGURACIÓN'}
+                            {loading ? 'Guardando...' : 'GUARDAR TODA LA CONFIGURACIÓN'}
                         </button>
                     </form>
                 </div>

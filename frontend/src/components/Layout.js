@@ -17,25 +17,38 @@ const Layout = ({ children }) => {
 
     const isActive = (path) => location.pathname === path ? 'active fw-bold' : '';
 
-    // --- URL DE LA IMAGEN DE FONDO ---
-    // Puedes cambiar esta URL por una que subas a Cloudinary si prefieres.
-    const backgroundImageURL = "https://images.unsplash.com/photo-1503951914290-9b0147215270?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3";
+    // 1. Determinamos si hay imagen de fondo configurada
+    const hasBackground = !!config.backgroundImageUrl;
 
     return (
-        <div className="d-flex flex-column min-vh-100">
+        <div className="d-flex flex-column min-vh-100 position-relative overflow-hidden" style={{ backgroundColor: '#f0f2f5' }}>
+            
+            {/* --- CAPA DE FONDO DIFUMINADA (SOLO SI HAY IMAGEN) --- */}
+            {hasBackground && (
+                <div 
+                    style={{
+                        position: 'fixed', // Fijo para efecto parallax
+                        top: -20, left: -20, right: -20, bottom: -20, // Un poco más grande para evitar bordes blancos al difuminar
+                        zIndex: 0, // Detrás de todo
+                        backgroundImage: `url('${config.backgroundImageUrl}')`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        filter: 'blur(8px) brightness(0.4)', // <--- AQUÍ ESTÁ LA MAGIA: Difuminado y Oscurecido
+                        transform: 'scale(1.05)' // Pequeño zoom para mejorar bordes difuminados
+                    }}
+                ></div>
+            )}
+
             {/* --- NAVBAR --- */}
-            {/* Le quitamos la sombra (shadow-lg) para que se fusione mejor con el fondo */}
-            <nav className="navbar navbar-expand-lg navbar-dark bg-primary sticky-top border-bottom border-dark">
+            {/* zIndex: 10 aseguramos que el navbar esté sobre el fondo */}
+            <nav className="navbar navbar-expand-lg navbar-dark bg-primary sticky-top border-bottom border-dark" style={{ zIndex: 10 }}>
                 <div className="container">
-                    
                     <Link className="navbar-brand d-flex align-items-center fw-bold" to="/" style={{ letterSpacing: '1px' }}>
                         {config.logoUrl ? (
-                            // 1. CAMBIO: Agrandamos el logo
-                            // Subimos maxHeight de 45px a 70px (ajústalo si es mucho o poco)
                             <img 
                                 src={config.logoUrl} 
                                 alt={config.appName} 
-                                style={{ maxHeight: '100px', objectFit: 'contain' }} 
+                                style={{ maxHeight: '75px', objectFit: 'contain' }} 
                             />
                         ) : (
                             <>
@@ -54,7 +67,7 @@ const Layout = ({ children }) => {
                                 <Link className={`nav-link ${isActive('/')}`} to="/">Reservar</Link>
                             </li>
                             
-                            {/* --- MENÚ DE USUARIO LOGUEADO --- */}
+                            {/* Menú de Usuario */}
                             {user && (
                                 <li className="nav-item dropdown ms-lg-3">
                                     <a className="nav-link dropdown-toggle btn btn-secondary text-white px-3 rounded-pill" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
@@ -85,35 +98,28 @@ const Layout = ({ children }) => {
                 </div>
             </nav>
 
-            {/* --- CONTENIDO PRINCIPAL CON FONDO --- */}
-            {/* 2. CAMBIO: Agregamos la imagen de fondo con una capa oscura superpuesta */}
-            <main className="flex-grow-1 d-flex align-items-center py-5" style={{ 
-                // El truco del degradado: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)) crea una capa negra al 60% de opacidad sobre la imagen.
-                backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('${backgroundImageURL}')`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundAttachment: 'fixed' // Efecto parallax al hacer scroll
-            }}>
+            {/* --- CONTENIDO PRINCIPAL --- */}
+            {/* zIndex: 5 para que esté sobre el fondo borroso pero bajo el navbar */}
+            <main className="flex-grow-1 d-flex align-items-center py-5 position-relative" style={{ zIndex: 5 }}>
                 <div className="container animate__animated animate__fadeIn">
-                    {/* Envolvemos el contenido en una "tarjeta" blanca para que resalte del fondo oscuro */}
-                    <div className="bg-white p-4 p-md-5 rounded-4 shadow-lg" style={{backgroundColor: 'rgba(255, 255, 255, 0.95)'}}>
+                    {/* Si hay fondo, usamos una tarjeta blanca semitransparente. 
+                       Si no hay fondo, el contenido queda limpio sobre el gris claro.
+                    */}
+                    <div className={`p-4 p-md-5 rounded-4 shadow-lg ${hasBackground ? 'bg-white bg-opacity-90' : ''}`}>
                         {children}
                     </div>
                 </div>
             </main>
 
             {/* --- FOOTER --- */}
-            <footer className="bg-dark text-white text-center py-4 mt-auto position-relative border-top border-secondary">
+            <footer className="bg-dark text-white text-center py-4 mt-auto position-relative border-top border-secondary" style={{ zIndex: 10 }}>
                 <div className="container">
                     <div className="mb-2">
                         <FaCut className="text-muted fs-4" />
                     </div>
-                    
                     <p className="mb-0 small opacity-75">
                         &copy; {new Date().getFullYear()} <strong>{config.appName}</strong>. {config.footerText}
                     </p>
-
-                    {/* --- PUERTA TRASERA (LOGIN DISCRETO) --- */}
                     {!user && (
                         <div className="position-absolute bottom-0 end-0 p-3">
                             <Link to="/login" className="text-secondary opacity-25 hover-opacity-100" title="Acceso Staff">

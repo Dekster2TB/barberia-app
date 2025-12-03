@@ -7,45 +7,41 @@ import axios from 'axios';
 const ConfigManager = () => {
     const { config, fetchConfig } = useContext(ConfigContext);
     
-    // Estado del formulario incluyendo el nuevo campo welcomeTitle
     const [formData, setFormData] = useState({
         appName: '',
-        welcomeTitle: '', // <--- NUEVO CAMPO
+        welcomeTitle: '',
         footerText: '',
         whatsappNumber: '',
         logoUrl: '',
+        logoHeight: 75, // Estado para el tamaño
         backgroundImageUrl: ''
     });
 
-    // Estados para los archivos seleccionados (Imágenes)
     const [logoFile, setLogoFile] = useState(null);
     const [backgroundFile, setBackgroundFile] = useState(null);
-    
     const [loading, setLoading] = useState(false);
 
-    // Cargar datos iniciales desde el contexto
     useEffect(() => {
         if (config) {
             setFormData({
                 appName: config.appName || '',
-                welcomeTitle: config.welcomeTitle || '', // <--- CARGAR DATO
+                welcomeTitle: config.welcomeTitle || '',
                 footerText: config.footerText || '',
                 whatsappNumber: config.whatsappNumber || '',
                 logoUrl: config.logoUrl || '',
+                logoHeight: config.logoHeight || 75, // Cargar tamaño guardado
                 backgroundImageUrl: config.backgroundImageUrl || ''
             });
         }
     }, [config]);
 
-    // --- FUNCIÓN PARA SUBIR A CLOUDINARY ---
     const uploadImageToCloudinary = async (file) => {
         if (!file) return null;
         const data = new FormData();
         data.append("file", file);
-        
-        // ⚠️ REEMPLAZA CON TUS DATOS REALES DE CLOUDINARY:
-        data.append("upload_preset", "Barberia_preset"); 
-        data.append("cloud_name", "dm9nfa8ot");
+        // REEMPLAZA CON TUS DATOS:
+        data.append("upload_preset", "TU_UPLOAD_PRESET_AQUI"); 
+        data.append("cloud_name", "TU_CLOUD_NAME_AQUI");
 
         try {
             const res = await axios.post(
@@ -59,46 +55,35 @@ const ConfigManager = () => {
         }
     };
 
-    // --- FUNCIÓN PARA QUITAR IMÁGENES ---
     const handleRemoveImage = (type) => {
         if (type === 'logo') {
             setLogoFile(null);
-            setFormData({ ...formData, logoUrl: null }); // Marcar null para borrar en DB
+            setFormData({ ...formData, logoUrl: null });
         } else if (type === 'background') {
             setBackgroundFile(null);
-            setFormData({ ...formData, backgroundImageUrl: null }); // Marcar null para borrar en DB
+            setFormData({ ...formData, backgroundImageUrl: null });
         }
     };
 
-    // --- GUARDAR CAMBIOS ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         const loadingToast = toast.loading('Guardando configuración...');
 
         try {
-            // 1. Subir imágenes si hay archivos nuevos seleccionados
             let newLogoUrl = formData.logoUrl;
             let newBackgroundUrl = formData.backgroundImageUrl;
 
-            if (logoFile) {
-                newLogoUrl = await uploadImageToCloudinary(logoFile);
-            }
-            if (backgroundFile) {
-                newBackgroundUrl = await uploadImageToCloudinary(backgroundFile);
-            }
+            if (logoFile) newLogoUrl = await uploadImageToCloudinary(logoFile);
+            if (backgroundFile) newBackgroundUrl = await uploadImageToCloudinary(backgroundFile);
 
-            // 2. Enviar todo al backend (incluyendo welcomeTitle)
             await api.put('/api/config', {
                 ...formData,
                 logoUrl: newLogoUrl,
                 backgroundImageUrl: newBackgroundUrl
             });
             
-            // 3. Recargar contexto global
             await fetchConfig(); 
-            
-            // Limpiar inputs de archivo
             setLogoFile(null);
             setBackgroundFile(null);
             
@@ -113,7 +98,7 @@ const ConfigManager = () => {
         }
     };
 
-    // Helper visual para previsualizar imagen
+    // Helper visual
     const getPreview = (file, url) => {
         if (file) return URL.createObjectURL(file);
         if (url) return url;
@@ -129,17 +114,39 @@ const ConfigManager = () => {
                 <div className="card-body p-4">
                     <form onSubmit={handleSubmit}>
                         
-                        {/* --- SECCIÓN IMÁGENES --- */}
                         <div className="row mb-4">
-                            {/* Logo */}
+                            {/* --- COLUMNA LOGO (CON SLIDER DE TAMAÑO) --- */}
                             <div className="col-md-6 mb-3 mb-md-0">
                                 <div className="border p-3 rounded bg-light text-center h-100">
-                                    <label className="form-label fw-bold d-block mb-3">Logo (Navbar)</label>
-                                    <div className="mb-3 d-flex justify-content-center align-items-center" style={{ height: '80px', background: '#e9ecef', borderRadius: '8px' }}>
+                                    <label className="form-label fw-bold d-block mb-2">Logo (Navbar)</label>
+                                    
+                                    {/* Previsualización Dinámica */}
+                                    <div className="mb-3 d-flex justify-content-center align-items-center" style={{ height: '160px', background: '#e9ecef', borderRadius: '8px', overflow: 'hidden' }}>
                                         {getPreview(logoFile, formData.logoUrl) ? (
-                                            <img src={getPreview(logoFile, formData.logoUrl)} alt="Logo Preview" style={{ maxHeight: '60px', maxWidth: '100%' }} />
+                                            <img 
+                                                src={getPreview(logoFile, formData.logoUrl)} 
+                                                alt="Preview" 
+                                                // JSX ACTUALIZADO: Usa el tamaño del estado
+                                                style={{ height: `${formData.logoHeight}px`, objectFit: 'contain', transition: 'height 0.2s' }} 
+                                            />
                                         ) : <span className="text-muted small">Sin Logo</span>}
                                     </div>
+
+                                    {/* JSX ACTUALIZADO: Slider de control */}
+                                    <div className="mb-3 px-2">
+                                        <label className="form-label small text-muted fw-bold d-flex justify-content-between">
+                                            <span>Tamaño: {formData.logoHeight}px</span>
+                                            <span>(Min: 30 - Max: 150)</span>
+                                        </label>
+                                        <input 
+                                            type="range" 
+                                            className="form-range" 
+                                            min="30" max="150" step="5"
+                                            value={formData.logoHeight || 75} 
+                                            onChange={(e) => setFormData({...formData, logoHeight: parseInt(e.target.value)})}
+                                        />
+                                    </div>
+
                                     <input type="file" className="form-control form-control-sm mb-2" accept="image/*" onChange={(e) => setLogoFile(e.target.files[0])} />
                                     {(logoFile || formData.logoUrl) && (
                                         <button type="button" className="btn btn-outline-danger btn-sm w-100" onClick={() => handleRemoveImage('logo')}>Quitar Logo</button>
@@ -147,10 +154,10 @@ const ConfigManager = () => {
                                 </div>
                             </div>
 
-                            {/* Fondo */}
+                            {/* --- COLUMNA FONDO --- */}
                             <div className="col-md-6">
                                 <div className="border p-3 rounded bg-light text-center h-100">
-                                    <label className="form-label fw-bold d-block mb-3">Imagen de Fondo (Página Principal)</label>
+                                    <label className="form-label fw-bold d-block mb-3">Imagen de Fondo</label>
                                     <div className="mb-3 d-flex justify-content-center align-items-center" 
                                          style={{ 
                                              height: '80px', 
@@ -166,47 +173,30 @@ const ConfigManager = () => {
                                     {(backgroundFile || formData.backgroundImageUrl) && (
                                         <button type="button" className="btn btn-outline-danger btn-sm w-100" onClick={() => handleRemoveImage('background')}>Quitar Fondo</button>
                                     )}
-                                    <div className="form-text small mt-1">Se aplicará difuminado y capa oscura automáticamente.</div>
                                 </div>
                             </div>
                         </div>
                         
                         <hr className="my-4"/>
 
-                        {/* --- SECCIÓN TEXTOS --- */}
-
-                        {/* 1. Nombre de la Marca (Navbar y Footer) */}
                         <div className="mb-3">
-                            <label className="form-label fw-bold">Nombre de la Barbería (Marca)</label>
-                            <input 
-                                className="form-control" 
-                                value={formData.appName} 
-                                onChange={e => setFormData({...formData, appName: e.target.value})} 
-                                placeholder="Ej: Parce's Barbershop"
-                            />
-                            <div className="form-text">Aparece en la barra de navegación (si no hay logo) y en el pie de página.</div>
+                            <label className="form-label fw-bold">Nombre de la Marca</label>
+                            <input className="form-control" value={formData.appName} onChange={e => setFormData({...formData, appName: e.target.value})} />
                         </div>
 
-                        {/* 2. Título Central (Separado) */}
                         <div className="mb-3 p-3 bg-light border rounded">
-                            <label className="form-label fw-bold text-primary">Título de Bienvenida (Centro de la página)</label>
-                            <input 
-                                className="form-control fw-bold" 
-                                value={formData.welcomeTitle} 
-                                onChange={e => setFormData({...formData, welcomeTitle: e.target.value})} 
-                                placeholder="Ej: COMIENZA A AGENDAR"
-                            />
-                            <div className="form-text">Este es el título grande que aparece en el centro, independiente de la marca.</div>
+                            <label className="form-label fw-bold text-primary">Título de Bienvenida</label>
+                            <input className="form-control fw-bold" value={formData.welcomeTitle} onChange={e => setFormData({...formData, welcomeTitle: e.target.value})} />
                         </div>
 
                         <div className="row">
                              <div className="col-md-6 mb-3">
-                                <label className="form-label fw-bold">WhatsApp (Sin +)</label>
-                                <input className="form-control" value={formData.whatsappNumber} onChange={e => setFormData({...formData, whatsappNumber: e.target.value})} placeholder="56912345678" />
+                                <label className="form-label fw-bold">WhatsApp</label>
+                                <input className="form-control" value={formData.whatsappNumber} onChange={e => setFormData({...formData, whatsappNumber: e.target.value})} />
                             </div>
                             <div className="col-md-6 mb-3">
                                 <label className="form-label fw-bold">Texto Pie de Página</label>
-                                <input className="form-control" value={formData.footerText} onChange={e => setFormData({...formData, footerText: e.target.value})} placeholder="Frase final del sitio" />
+                                <input className="form-control" value={formData.footerText} onChange={e => setFormData({...formData, footerText: e.target.value})} />
                             </div>
                         </div>
 

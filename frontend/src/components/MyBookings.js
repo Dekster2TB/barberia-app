@@ -54,8 +54,11 @@ const MyBookings = () => {
     return (
         <div className="container mt-5" style={{ maxWidth: '600px' }}>
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2 className="fw-bold">Mis Reservas 📅</h2>
-                <button className="btn btn-outline-secondary btn-sm" onClick={() => navigate('/')}>
+                {/* AQUI ESTÁ EL CAMBIO: Agregamos 'text-white' */}
+                <h2 className="fw-bold text-white">Mis Reservas 📅</h2>
+                
+                {/* Sugerencia: Cambié el botón a 'btn-light' para que se vea mejor sobre fondo oscuro */}
+                <button className="btn btn-light btn-sm" onClick={() => navigate('/')}>
                     🏠 Volver
                 </button>
             </div>

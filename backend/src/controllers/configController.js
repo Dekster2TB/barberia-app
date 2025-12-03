@@ -6,11 +6,12 @@ exports.getConfig = async (req, res) => {
             where: { id: 1 },
             defaults: {
                 appName: 'Mi Barbería',
-                welcomeTitle: 'Reserva tu Cita', // Valor por defecto
+                welcomeTitle: 'Reserva tu Cita',
                 footerText: 'Reserva tu hora online',
                 whatsappNumber: '56900000000',
                 logoUrl: null,
-                backgroundImageUrl: null 
+                backgroundImageUrl: null,
+                logoHeight: 75 // Valor por defecto
             }
         });
         res.json(config);
@@ -22,25 +23,30 @@ exports.getConfig = async (req, res) => {
 
 exports.updateConfig = async (req, res) => {
     try {
-        // Recibimos el nuevo campo welcomeTitle
-        const { appName, welcomeTitle, footerText, whatsappNumber, logoUrl, backgroundImageUrl } = req.body;
+        // Recibimos todos los campos, incluido logoHeight
+        const { 
+            appName, welcomeTitle, footerText, whatsappNumber, 
+            logoUrl, backgroundImageUrl, logoHeight 
+        } = req.body;
 
         let config = await SiteConfig.findByPk(1);
 
         if (!config) {
             config = await SiteConfig.create({
-                id: 1, appName, welcomeTitle, footerText, whatsappNumber, logoUrl, backgroundImageUrl
+                id: 1, appName, welcomeTitle, footerText, whatsappNumber, 
+                logoUrl, backgroundImageUrl, logoHeight
             });
         } else {
-            // Actualizamos campos existentes
+            // Actualizamos solo si vienen los datos
             if (appName !== undefined) config.appName = appName;
+            if (welcomeTitle !== undefined) config.welcomeTitle = welcomeTitle;
             if (footerText !== undefined) config.footerText = footerText;
             if (whatsappNumber !== undefined) config.whatsappNumber = whatsappNumber;
             if (logoUrl !== undefined) config.logoUrl = logoUrl;
             if (backgroundImageUrl !== undefined) config.backgroundImageUrl = backgroundImageUrl;
             
-            // Actualizamos el nuevo título central
-            if (welcomeTitle !== undefined) config.welcomeTitle = welcomeTitle;
+            // Actualizar tamaño del logo
+            if (logoHeight !== undefined) config.logoHeight = logoHeight;
 
             await config.save();
         }

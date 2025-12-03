@@ -27,8 +27,17 @@ const BookingInterface = () => {
     const sendWhatsAppConfirmation = () => {
         if (!selectedBarber || !selectedDate || !selectedTime || !selectedService) return;
         const businessPhone = config.whatsappNumber || "56900000000"; 
-        const message = `Hola *${config.appName || 'Barbería'}* 💈, acabo de agendar...`; 
-        const url = `https://wa.me/${businessPhone}?text=${encodeURIComponent(message)}`;
+        
+        // --- MENSAJE DE WHATSAPP COMPLETO RESTAURADO ---
+        const message = 
+`Hola *${config.appName || 'Barbería'}* 💈, acabo de agendar mi hora:%0A
+✂️ *Servicio:* ${selectedService.name}%0A
+👤 *Barbero:* ${selectedBarber.name}%0A
+📅 *Fecha:* ${selectedDate}%0A
+⏰ *Hora:* ${selectedTime}%0A%0A
+Quiero confirmar que está todo listo. ¡Gracias!`;
+
+        const url = `https://wa.me/${businessPhone}?text=${message}`;
         window.open(url, '_blank');
     };
 
@@ -37,7 +46,6 @@ const BookingInterface = () => {
             
             {/* --- ENCABEZADO --- */}
             <div className="text-center mb-5">
-                {/* TÍTULO PRINCIPAL: Se mantiene en BLANCO (text-white) para resaltar sobre el fondo oscuro */}
                 <h1 className="fw-bold text-uppercase fs-2 fs-md-1 text-white" style={{ letterSpacing: '2px', textShadow: '0px 2px 4px rgba(0,0,0,0.5)' }}>
                     {config.welcomeTitle || 'Reserva tu Cita'} 
                     <span className="text-primary ms-2">💈</span>
@@ -46,7 +54,7 @@ const BookingInterface = () => {
 
             {/* --- CONTENIDO PRINCIPAL --- */}
             {isSuccess ? (
-                // Tarjeta de éxito BLANCA
+                // Tarjeta de éxito BLANCA SÓLIDA
                 <div className="card text-center p-4 p-md-5 shadow border-0 animate__animated animate__bounceIn bg-white">
                     <div className="card-body">
                         <div className="mb-4"><span style={{ fontSize: '4rem' }}>🎉</span></div>
@@ -73,7 +81,6 @@ const BookingInterface = () => {
                     {/* PASO 1 */}
                     {!selectedService && (
                         <div className="animate__animated animate__fadeIn">
-                            {/* Subtítulo GRIS OSCURO (text-secondary) para que se lea sobre el blanco */}
                             <h5 className="text-center text-secondary mb-4 text-uppercase fw-bold" style={{ letterSpacing: '1px', fontSize: '0.9rem' }}>
                                 1. SELECCIONA TU SERVICIO
                             </h5>
@@ -84,7 +91,6 @@ const BookingInterface = () => {
                     {/* PASO 2 */}
                     {selectedService && !selectedBarber && (
                         <div className="animate__animated animate__fadeInRight">
-                            {/* Subtítulo GRIS OSCURO */}
                             <h5 className="text-center text-secondary mb-4 text-uppercase fw-bold" style={{ letterSpacing: '1px', fontSize: '0.9rem' }}>
                                 2. SELECCIONA TU BARBERO
                             </h5>
@@ -95,7 +101,6 @@ const BookingInterface = () => {
                     {/* PASO 3 */}
                     {selectedService && selectedBarber && !selectedTime && (
                         <div className="animate__animated animate__fadeInRight">
-                             {/* Subtítulo GRIS OSCURO */}
                              <h5 className="text-center text-secondary mb-4 text-uppercase fw-bold" style={{ letterSpacing: '1px', fontSize: '0.9rem' }}>
                                 3. FECHA Y HORA
                             </h5>
@@ -112,7 +117,6 @@ const BookingInterface = () => {
                     {/* PASO 4 */}
                     {selectedService && selectedBarber && selectedTime && (
                         <div className="animate__animated animate__fadeInUp">
-                            {/* Subtítulo GRIS OSCURO */}
                             <h5 className="text-center text-secondary mb-4 text-uppercase fw-bold" style={{ letterSpacing: '1px', fontSize: '0.9rem' }}>
                                 4. CONFIRMA TUS DATOS
                             </h5>
